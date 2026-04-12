@@ -267,6 +267,33 @@ function App() {
           <article className="panel routes-panel">
             <div className="panel-header compact">
               <div>
+                <p className="panel-kicker">Scenario Brief</p>
+                <h2>What changed in the flood zone</h2>
+              </div>
+            </div>
+            <div className="route-list">
+              <div className="route-card">
+                <div className="route-topline">
+                  <span className="vehicle-pill" data-vehicle="truck">
+                    {snapshot.graph.metadata.region}
+                  </span>
+                  <span>{snapshot.summary.last_recompute_ms ?? snapshot.missions.recompute_ms} ms</span>
+                </div>
+                <strong>{snapshot.graph.metadata.scenario}</strong>
+                <p>Last network update: {formatTimestamp(snapshot.graph.metadata.last_updated)}</p>
+                <p>{snapshot.summary.weighted_graph_note ?? "Weighted route cost blends travel time, risk, and capacity pressure."}</p>
+                <p>
+                  {blockedEdges.length > 0
+                    ? `${blockedEdges.length} corridor(s) are blocked and rendered as red dashed overlays.`
+                    : "No blocked corridors in the current snapshot."}
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article className="panel routes-panel">
+            <div className="panel-header compact">
+              <div>
                 <p className="panel-kicker">Routes</p>
                 <h2>Fleet lanes</h2>
               </div>

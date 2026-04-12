@@ -136,10 +136,25 @@ export default function CommandScreen() {
       </AnimatedPanel>
 
       <AnimatedPanel index={2}>
-        <RouteGraphCard network={liveNetwork} mission={primaryMission} />
+        <SectionCard
+          eyebrow="Scenario Brief"
+          title={liveSummary.scenario}
+          description="Use this card to explain the flood context before you zoom into the route graph. It translates the API state into demo language."
+        >
+          <View style={{ gap: 10 }}>
+            <InfoRow label="Region" value={liveNetwork.metadata.region} />
+            <InfoRow label="Last network update" value={liveNetwork.metadata.last_updated} />
+            <InfoRow label="Blocked corridors" value={String(liveSummary.blocked_edge_count)} />
+            <InfoRow label="Primary mission" value={primaryMission.label} />
+          </View>
+        </SectionCard>
       </AnimatedPanel>
 
       <AnimatedPanel index={3}>
+        <RouteGraphCard network={liveNetwork} mission={primaryMission} />
+      </AnimatedPanel>
+
+      <AnimatedPanel index={4}>
         <SectionCard
           eyebrow="Priority Pressure"
           title="Narrate the decision, not the math"

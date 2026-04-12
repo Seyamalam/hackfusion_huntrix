@@ -47,7 +47,7 @@ Check:
 curl "http://127.0.0.1:8080/api/routes/active?failed_edge=E2&failure_status=washed_out"
 curl "http://127.0.0.1:8080/api/routes/active?failed_edge=E6&failure_status=impassable"
 ```
-
+{"scenario":"Flash Flood Delta","applied_failure_edge":"E2","failure_status":"washed_out","recompute_ms":0,"affected_route_count":3,"active_routes":[{"source":"N1","target":"N3","vehicle":"speedboat","payload_kg":80,"total_mins":150,"total_cost":162,"leg_count":1,"legs":[{"EdgeID":"E6","Source":"N1","Target":"N3","LinkType":"waterway","WeightMins":150,"TravelTimeMins":150,"CapacityUnits":180,"RiskScore":2,"PayloadLimitKg":180,"WeightedCost":162,"RiskPenalty":12,"CapacityPenalty":0}]},{"source":"N2","target":"N4","vehicle":"drone","payload_kg":12,"total_mins":16,"total_cost":40,"leg_count":1,"legs":[{"EdgeID":"E9","Source":"N2","Target":"N4","LinkType":"airway","WeightMins":16,"TravelTimeMins":16,"CapacityUnits":12,"RiskScore":2,"PayloadLimitKg":12,"WeightedCost":40,"RiskPenalty":12,"CapacityPenalty":12}]}]}
 Confirm:
 - `recompute_ms` is returned
 - `recompute_ms < 2000`
