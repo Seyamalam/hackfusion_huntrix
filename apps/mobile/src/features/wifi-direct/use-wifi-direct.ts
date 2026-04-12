@@ -12,11 +12,20 @@ import {
   stop,
   stopDiscoveringPeers,
   subscribeOnConnectionInfoUpdates,
-  subscribeOnMessageReceived,
   subscribeOnPeersUpdates,
   type Device,
   type WifiP2pInfo,
 } from 'rn-wifi-p2p';
+import {
+  applyDeltaBundle,
+  buildDeltaBundle,
+  buildHandshake,
+  createSeedInventoryItem,
+  type InventoryItem,
+  type SyncDeltaBundle,
+  type SyncHandshake,
+  type SyncSessionSummary,
+} from '@/src/features/sync-demo/sync-protocol';
 
 type WifiDirectState = {
   connectionInfo: WifiP2pInfo | null;
@@ -25,8 +34,11 @@ type WifiDirectState = {
   isReady: boolean;
   isReceiving: boolean;
   isScanning: boolean;
+  lastHandshakeReplica: string | null;
+  localInventory: InventoryItem;
   messages: string[];
   peers: Device[];
+  sessionSummary: SyncSessionSummary | null;
   transportNote: string;
 };
 
@@ -37,8 +49,11 @@ const INITIAL_STATE: WifiDirectState = {
   isReady: process.env.EXPO_OS === 'android',
   isReceiving: false,
   isScanning: false,
+  lastHandshakeReplica: null,
+  localInventory: createSeedInventoryItem(),
   messages: [],
   peers: [],
+  sessionSummary: null,
   transportNote:
     'Wi-Fi Direct is the first credible path for actual phone-to-phone delta sync in this stack.',
 };
@@ -115,20 +130,14 @@ export function useWifiDirect() {
           }));
         }),
       );
-      subscriptionsRef.current.push(
-        subscribeOnMessageReceived((message) => {
-          setState((current) => ({
-            ...current,
-            messages: [
-              `from ${message.fromAddress}: ${message.message}`,
-              ...current.messages,
-            ].slice(0, 8),
-          }));
-        }),
-      );
-
       stopReceivingRef.current?.();
-      stopReceivingRef.current = await startReceivingMessage({ meta: true });
+      stopReceivingRef.current = await startReceivingMessage(
+        { meta: true },
+        (message) => {
+          handleIncomingPayload(message.fromAddress, message.message);
+        },
+        { useJson: true },
+      );
 
       setState((current) => ({
         ...current,
@@ -189,21 +198,17 @@ export function useWifiDirect() {
   }
 
   async function sendHandshake(deviceAddress: string) {
-    const payload = JSON.stringify({
-      deviceLabel: 'Huntrix Delta',
-      kind: 'sync-handshake',
-      lastSyncAt: new Date().toISOString(),
-      replicaId: 'android-peer',
-      vectorClock: { 'android-peer': 1 },
-    });
+    const payload = JSON.stringify(
+      buildHandshake('android-peer', state.localInventory.vector_clock),
+    );
 
     try {
-      const result = await sendMessageTo(payload, deviceAddress);
+      await sendMessageTo(payload, deviceAddress);
       setState((current) => ({
         ...current,
         error: null,
         messages: [
-          `to ${deviceAddress}: ${result.message}`,
+          `to ${deviceAddress}: handshake sent`,
           ...current.messages,
         ].slice(0, 8),
       }));
@@ -215,14 +220,81 @@ export function useWifiDirect() {
     }
   }
 
+  async function sendDeltaBundle(deviceAddress: string) {
+    const payload = JSON.stringify(
+      buildDeltaBundle('android-peer', deviceAddress, state.localInventory),
+    );
+
+    try {
+      await sendMessageTo(payload, deviceAddress);
+      setState((current) => ({
+        ...current,
+        error: null,
+        messages: [`to ${deviceAddress}: delta bundle sent`, ...current.messages].slice(0, 8),
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error instanceof Error ? error.message : 'Failed to send Wi-Fi Direct delta bundle.',
+      }));
+    }
+  }
+
   return {
     ...state,
     connectToPeer,
     discoverPeers,
     initializeTransport,
+    sendDeltaBundle,
     sendHandshake,
     stopDiscovery,
   };
+
+  function handleIncomingPayload(fromAddress: string, payload: unknown) {
+    if (!payload || typeof payload !== 'object' || !('kind' in payload)) {
+      setState((current) => ({
+        ...current,
+        messages: [`from ${fromAddress}: received unsupported payload`, ...current.messages].slice(0, 8),
+      }));
+      return;
+    }
+
+    const kind = String((payload as { kind: string }).kind);
+    if (kind === 'sync-handshake') {
+      const handshake = payload as SyncHandshake;
+      setState((current) => ({
+        ...current,
+        lastHandshakeReplica: handshake.replica_id,
+        messages: [
+          `from ${fromAddress}: handshake from ${handshake.replica_id}`,
+          ...current.messages,
+        ].slice(0, 8),
+      }));
+      return;
+    }
+
+    if (kind === 'sync-delta') {
+      const bundle = payload as SyncDeltaBundle;
+      setState((current) => {
+        const result = applyDeltaBundle(current.localInventory, bundle);
+        return {
+          ...current,
+          localInventory: result.item,
+          messages: [
+            `from ${fromAddress}: delta bundle applied`,
+            ...current.messages,
+          ].slice(0, 8),
+          sessionSummary: result.summary,
+        };
+      });
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      messages: [`from ${fromAddress}: unknown kind ${kind}`, ...current.messages].slice(0, 8),
+    }));
+  }
 }
 
 async function requestWifiDirectPermissions() {

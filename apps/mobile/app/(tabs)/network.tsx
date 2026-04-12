@@ -122,7 +122,7 @@ export default function NetworkScreen() {
         <SectionCard
           eyebrow="Wi-Fi Direct"
           title="Peer transport candidates"
-          description="Connect to a peer and send a sync-handshake message. This is scaffold-level, but it is the right path toward actual delta exchange."
+          description="Connect to a peer, send a handshake, then send a real delta bundle based on the current local inventory state."
         >
           <View style={{ gap: 12 }}>
             {wifiDirect.peers.length === 0 ? (
@@ -151,6 +151,7 @@ export default function NetworkScreen() {
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                     <ActionChip label="Connect" onPress={() => wifiDirect.connectToPeer(peer.deviceAddress)} tone="primary" />
                     <ActionChip label="Send Handshake" onPress={() => wifiDirect.sendHandshake(peer.deviceAddress)} />
+                    <ActionChip label="Send Delta Bundle" onPress={() => wifiDirect.sendDeltaBundle(peer.deviceAddress)} />
                   </View>
                 </View>
               ))
@@ -159,8 +160,46 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
+      <AnimatedPanel index={4}>
+        <SectionCard
+          eyebrow="Local Replica"
+          title="Current sync payload state"
+          description="This is the inventory record the device currently has available to send through the sync-session protocol."
+        >
+          <View style={{ gap: 10 }}>
+            <InfoRow label="Item" value={wifiDirect.localInventory.name} />
+            <InfoRow label="Quantity" value={String(wifiDirect.localInventory.quantity)} />
+            <InfoRow label="Priority" value={wifiDirect.localInventory.priority} />
+            <InfoRow label="Last writer" value={wifiDirect.localInventory.last_writer} />
+            <InfoRow
+              label="Vector clock"
+              value={Object.entries(wifiDirect.localInventory.vector_clock)
+                .map(([replica, counter]) => `${replica}:${counter}`)
+                .join(' | ')}
+            />
+            <InfoRow label="Last handshake" value={wifiDirect.lastHandshakeReplica ?? 'none'} />
+          </View>
+        </SectionCard>
+      </AnimatedPanel>
+
+      {wifiDirect.sessionSummary ? (
+        <AnimatedPanel index={5}>
+          <SectionCard
+            eyebrow="Session Summary"
+            title="Latest delta application result"
+            description="This summary updates when a sync-delta payload is received and merged on-device."
+          >
+            <View style={{ gap: 10 }}>
+              <InfoRow label="Merged records" value={String(wifiDirect.sessionSummary.merged_count)} />
+              <InfoRow label="Conflicts" value={String(wifiDirect.sessionSummary.conflict_count)} />
+              <InfoRow label="Payload bytes" value={String(wifiDirect.sessionSummary.bytes_estimate)} />
+            </View>
+          </SectionCard>
+        </AnimatedPanel>
+      ) : null}
+
       {wifiDirect.messages.length > 0 ? (
-        <AnimatedPanel index={4}>
+        <AnimatedPanel index={6}>
           <SectionCard
             eyebrow="Session Log"
             title="Wi-Fi Direct message activity"
@@ -177,7 +216,7 @@ export default function NetworkScreen() {
         </AnimatedPanel>
       ) : null}
 
-      <AnimatedPanel index={5}>
+      <AnimatedPanel index={7}>
         <SectionCard
           eyebrow="Native BLE"
           title="Discovered nearby devices"
@@ -215,7 +254,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={6}>
+      <AnimatedPanel index={8}>
         <SectionCard
           eyebrow="Topology"
           title="Relief nodes in the current scenario"
