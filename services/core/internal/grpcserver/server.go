@@ -22,12 +22,16 @@ type Server struct {
 
 	mu            sync.RWMutex
 	overrideGraph *scenario.Graph
+	acceptedOps   map[string]struct{}
+	pendingByReplica map[string][]*digitaldeltav1.RelayEnvelope
 }
 
 func New(mapPath, chaosURL string) *Server {
 	return &Server{
-		mapPath:  filepath.Clean(mapPath),
-		chaosURL: chaosURL,
+		mapPath:         filepath.Clean(mapPath),
+		chaosURL:        chaosURL,
+		acceptedOps:     map[string]struct{}{},
+		pendingByReplica: map[string][]*digitaldeltav1.RelayEnvelope{},
 	}
 }
 
@@ -103,6 +107,69 @@ func (s *Server) UpsertNetworkState(_ context.Context, req *digitaldeltav1.Upser
 		NodeCount: uint32(len(graph.Nodes)),
 		EdgeCount: uint32(len(graph.Edges)),
 	}, nil
+}
+
+func (s *Server) ExchangeBundle(_ context.Context, req *digitaldeltav1.ExchangeBundleRequest) (*digitaldeltav1.ExchangeBundleResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	accepted := make([]string, 0)
+	rejected := make([]string, 0)
+	pending := make([]string, 0)
+
+	bundle := req.GetBundle()
+	if bundle == nil {
+		return &digitaldeltav1.ExchangeBundleResponse{
+			ReplicaId:            req.GetTargetReplicaId(),
+			AcceptedOperationIds: accepted,
+			RejectedOperationIds: rejected,
+			PendingEnvelopeIds:   pending,
+		}, nil
+	}
+
+	for _, operation := range bundle.GetOperations() {
+		if _, exists := s.acceptedOps[operation.GetOperationId()]; exists {
+			rejected = append(rejected, operation.GetOperationId())
+			continue
+		}
+		s.acceptedOps[operation.GetOperationId()] = struct{}{}
+		accepted = append(accepted, operation.GetOperationId())
+	}
+
+	for _, envelope := range bundle.GetEnvelopes() {
+		target := envelope.GetIntendedRecipientNodeId()
+		if target == "" {
+			continue
+		}
+		s.pendingByReplica[target] = append(s.pendingByReplica[target], envelope)
+		pending = append(pending, envelope.GetEnvelopeId())
+	}
+
+	return &digitaldeltav1.ExchangeBundleResponse{
+		ReplicaId:            req.GetTargetReplicaId(),
+		AcceptedOperationIds: accepted,
+		RejectedOperationIds: rejected,
+		PendingEnvelopeIds:   pending,
+	}, nil
+}
+
+func (s *Server) PullPending(_ context.Context, req *digitaldeltav1.PullPendingRequest) (*digitaldeltav1.PullPendingResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	queue := s.pendingByReplica[req.GetReplicaId()]
+	if len(queue) == 0 {
+		return &digitaldeltav1.PullPendingResponse{Envelopes: []*digitaldeltav1.RelayEnvelope{}}, nil
+	}
+
+	limit := int(req.GetMaxItems())
+	if limit <= 0 || limit > len(queue) {
+		limit = len(queue)
+	}
+
+	result := append([]*digitaldeltav1.RelayEnvelope(nil), queue[:limit]...)
+	s.pendingByReplica[req.GetReplicaId()] = append([]*digitaldeltav1.RelayEnvelope(nil), queue[limit:]...)
+	return &digitaldeltav1.PullPendingResponse{Envelopes: result}, nil
 }
 
 func (s *Server) loadGraph(ctx context.Context) (scenario.Graph, error) {

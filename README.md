@@ -9,6 +9,13 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - Chaos simulator is integrated under `services/chaos/`.
 - The restored problem statement makes `M1` and `M2` stricter than our earlier shorthand summary, especially real device-to-device sync for `M2.4`.
 
+## Compliance Snapshot
+- `C2` Linux CI vegeta run `24307971168`: `100000` requests at `10000.05 req/s`, `9999.84 req/s` throughput, `100%` success, mean latency `190.01 µs`
+- Workflow: `.github/workflows/c2-vegeta-loadtest.yml`
+- APK workflows:
+  - `.github/workflows/android-apk-build.yml`
+  - `.github/workflows/generate-react-native-cicd.yml`
+
 ## Todo/Task
 - [x] Bootstrap Expo, Go, and protobuf project structure
 - [x] Add first-pass architecture notes and diagrams
@@ -164,4 +171,19 @@ powershell -ExecutionPolicy Bypass -File scripts/generate-proto.ps1
 Direct mobile sync packets now use protobuf-encoded peer packets on the Wi-Fi Direct transport. JSON is retained only for local storage and the developer-facing dashboard APIs.
 
 If Go dependency fetch is blocked on your network, the generator still emits the `.pb.go` and `.ts` files, but `go mod tidy` may need to be retried later.
+
+## GitHub Actions
+
+### C2 Vegeta
+- Manually run `C2 Vegeta Load Test`
+- Download the `c2-vegeta-loadtest` artifact for the CI proof report
+
+### Android APK
+- Manually run `Android APK Build`
+- Download the `android-release-apk` artifact
+
+### Marketplace Generator
+- Manually run `Generate React Native CI/CD Workflow`
+- It uses `TanayK07/react-native-expo-cicd-action@v1.0.3`
+- The generated workflow is uploaded as an artifact so you can inspect or commit it later
 

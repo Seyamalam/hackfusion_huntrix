@@ -35,3 +35,9 @@ Thumbs.db
 
 # Local codegen tooling cache
 scripts/.tools/
+
+# Local compliance scratch
+.tmp/
+c2artifact/
+devcerts/
+docs/compliance/*.bin

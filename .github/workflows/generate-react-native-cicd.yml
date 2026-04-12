@@ -1,0 +1,29 @@
+name: Generate React Native CI/CD Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-workflow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate workflow with marketplace action
+        uses: TanayK07/react-native-expo-cicd-action@v1.0.3
+        with:
+          storage-type: github-release
+          build-types: prod-apk
+          tests: typescript,eslint
+          triggers: manual
+          ios-support: "false"
+          notifications: "false"
+          output-file: .github/generated/react-native-cicd.generated.yml
+
+      - name: Upload generated workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-react-native-cicd-workflow
+          path: .github/generated/react-native-cicd.generated.yml
