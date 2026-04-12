@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Linking, NativeModules, PermissionsAndroid, Platform } from 'react-native';
+import { NativeModules, PermissionsAndroid } from 'react-native';
 import { BleManager, type Device } from 'react-native-ble-plx';
 
 export type BlePeer = {
@@ -96,6 +96,21 @@ export function useBleScanner() {
       return;
     }
 
+    const currentBleState = await managerRef.current.state();
+    setState((current) => ({
+      ...current,
+      bleState: currentBleState,
+    }));
+
+    if (currentBleState !== 'PoweredOn') {
+      setState((current) => ({
+        ...current,
+        error: 'Bluetooth is off. Enable Bluetooth on the device, then try scanning again.',
+        isScanning: false,
+      }));
+      return;
+    }
+
     const granted = await requestPermissions();
     if (!granted) {
       setState((current) => ({
@@ -156,44 +171,8 @@ export function useBleScanner() {
     }));
   }
 
-  async function enableBluetooth() {
-    if (!managerRef.current) {
-      return;
-    }
-
-    if (Platform.OS === 'android') {
-      try {
-        await managerRef.current.enable();
-        setState((current) => ({
-          ...current,
-          error: null,
-          bleState: 'PoweredOn',
-        }));
-        return;
-      } catch (error) {
-        setState((current) => ({
-          ...current,
-          error:
-            error instanceof Error
-              ? `Could not enable Bluetooth automatically. ${error.message}`
-              : 'Could not enable Bluetooth automatically.',
-        }));
-      }
-    }
-
-    try {
-      await Linking.openSettings();
-    } catch {
-      setState((current) => ({
-        ...current,
-        error: 'Open system Bluetooth settings manually and enable Bluetooth.',
-      }));
-    }
-  }
-
   return {
     ...state,
-    enableBluetooth,
     startScan,
     stopScan,
   };

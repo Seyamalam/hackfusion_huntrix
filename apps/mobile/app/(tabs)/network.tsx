@@ -67,10 +67,9 @@ export default function NetworkScreen() {
         <SectionCard
           eyebrow="M2.4"
           title="BLE transport scaffold"
-          description="This validates native BLE scanning in a dev build. It is a real next step toward device-to-device transport, but not yet full phone-to-phone sync."
+          description="This validates native BLE scanning in a dev build. We can add Wi-Fi Direct later, but this screen is focused on BLE transport readiness first."
         >
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            <ActionChip label="Turn Bluetooth On" onPress={ble.enableBluetooth} />
             <ActionChip label="Start BLE Scan" onPress={ble.startScan} tone="primary" />
             <ActionChip label="Stop Scan" onPress={ble.stopScan} />
           </View>
