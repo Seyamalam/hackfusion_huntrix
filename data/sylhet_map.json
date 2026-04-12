@@ -55,6 +55,10 @@
       "target": "N2",
       "type": "road",
       "base_weight_mins": 20,
+      "travel_time_mins": 20,
+      "capacity_units": 140,
+      "risk_score": 1,
+      "payload_limit_kg": 140,
       "is_flooded": false
     },
     {
@@ -63,6 +67,10 @@
       "target": "N3",
       "type": "road",
       "base_weight_mins": 90,
+      "travel_time_mins": 90,
+      "capacity_units": 120,
+      "risk_score": 5,
+      "payload_limit_kg": 120,
       "is_flooded": false
     },
     {
@@ -71,6 +79,10 @@
       "target": "N4",
       "type": "road",
       "base_weight_mins": 45,
+      "travel_time_mins": 45,
+      "capacity_units": 110,
+      "risk_score": 2,
+      "payload_limit_kg": 110,
       "is_flooded": false
     },
     {
@@ -79,6 +91,10 @@
       "target": "N5",
       "type": "road",
       "base_weight_mins": 60,
+      "travel_time_mins": 60,
+      "capacity_units": 105,
+      "risk_score": 3,
+      "payload_limit_kg": 105,
       "is_flooded": false
     },
     {
@@ -87,6 +103,10 @@
       "target": "N6",
       "type": "road",
       "base_weight_mins": 120,
+      "travel_time_mins": 120,
+      "capacity_units": 115,
+      "risk_score": 4,
+      "payload_limit_kg": 115,
       "is_flooded": false
     },
     {
@@ -95,6 +115,10 @@
       "target": "N3",
       "type": "river",
       "base_weight_mins": 150,
+      "travel_time_mins": 150,
+      "capacity_units": 180,
+      "risk_score": 2,
+      "payload_limit_kg": 180,
       "is_flooded": false
     },
     {
@@ -103,6 +127,46 @@
       "target": "N4",
       "type": "river",
       "base_weight_mins": 50,
+      "travel_time_mins": 50,
+      "capacity_units": 150,
+      "risk_score": 2,
+      "payload_limit_kg": 150,
+      "is_flooded": false
+    },
+    {
+      "id": "E8",
+      "source": "N2",
+      "target": "N3",
+      "type": "airway",
+      "base_weight_mins": 22,
+      "travel_time_mins": 22,
+      "capacity_units": 16,
+      "risk_score": 3,
+      "payload_limit_kg": 16,
+      "is_flooded": false
+    },
+    {
+      "id": "E9",
+      "source": "N2",
+      "target": "N4",
+      "type": "airway",
+      "base_weight_mins": 16,
+      "travel_time_mins": 16,
+      "capacity_units": 12,
+      "risk_score": 2,
+      "payload_limit_kg": 12,
+      "is_flooded": false
+    },
+    {
+      "id": "E10",
+      "source": "N4",
+      "target": "N6",
+      "type": "airway",
+      "base_weight_mins": 24,
+      "travel_time_mins": 24,
+      "capacity_units": 10,
+      "risk_score": 4,
+      "payload_limit_kg": 10,
       "is_flooded": false
     }
   ]

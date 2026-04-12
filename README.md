@@ -28,6 +28,8 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [x] Add inventory CRDT and vector-clock merge foundation in Go
 - [x] Implement CRDT inventory entries with vector clocks and conflict UI
 - [x] Scaffold Expo dev-client and native BLE discovery for transport readiness
+- [x] Add a Leaflet route dashboard for M4.4 with offline OSM tile caching
+- [x] Upgrade the Go route engine with weighted multi-modal edges and recomputation endpoints
 - [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [ ] Add `DEMO.md`, model card, and submission assets
@@ -106,6 +108,13 @@ go run ./services/core/cmd/grpcapi
 go run ./services/core/cmd/grpcapi -chaos-url http://127.0.0.1:5000
 go run ./services/core/cmd/grpcclient
 go run ./services/core/cmd/grpcclient -vehicle speedboat
+```
+
+### M4 Route Endpoints
+```bash
+curl "http://127.0.0.1:8080/api/route/preview?from=N1&to=N3&vehicle=truck&payload_kg=100"
+curl "http://127.0.0.1:8080/api/routes/active"
+curl "http://127.0.0.1:8080/api/routes/active?failed_edge=E2&failure_status=washed_out"
 ```
 
 ### M2 Demo Endpoints

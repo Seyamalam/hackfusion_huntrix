@@ -23,6 +23,7 @@ func ParseGraph(raw []byte) (Graph, error) {
 
 	for i := range graph.Edges {
 		graph.Edges[i].Type = normalizeLinkType(graph.Edges[i].Type)
+		graph.Edges[i].ApplyDefaults()
 	}
 
 	return graph, nil

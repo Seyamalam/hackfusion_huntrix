@@ -55,7 +55,7 @@ func (s *Server) ComputeRoute(ctx context.Context, req *digitaldeltav1.RouteRequ
 			TargetNodeId:       leg.Target,
 			LinkType:           toProtoLinkType(leg.LinkType),
 			WeightMins:         uint32(leg.WeightMins),
-			AppliedRiskPenalty: 0,
+			AppliedRiskPenalty: float64(leg.RiskPenalty),
 		})
 	}
 
