@@ -13,12 +13,14 @@ import {
   type NetworkStatus,
 } from '@/src/features/dashboard/dashboard-api';
 import { useBleScanner } from '@/src/features/ble/use-ble-scanner';
+import { useWifiDirect } from '@/src/features/wifi-direct/use-wifi-direct';
 import { palette } from '@/src/theme/palette';
 
 export default function NetworkScreen() {
   const [network, setNetwork] = useState<NetworkStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ble = useBleScanner();
+  const wifiDirect = useWifiDirect();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -86,6 +88,97 @@ export default function NetworkScreen() {
 
       <AnimatedPanel index={2}>
         <SectionCard
+          eyebrow="M2.4 Candidate"
+          title="Wi-Fi Direct transport scaffold"
+          description="This is the first actual phone-to-phone transfer candidate in the app. BLE stays useful for discovery, but Wi-Fi Direct is the realistic sync channel in this stack."
+        >
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <ActionChip label="Init Wi-Fi Direct" onPress={wifiDirect.initializeTransport} tone="primary" />
+            <ActionChip label="Discover Peers" onPress={wifiDirect.discoverPeers} />
+            <ActionChip label="Stop Discovery" onPress={wifiDirect.stopDiscovery} />
+          </View>
+          <View style={{ gap: 10 }}>
+            <InfoRow label="Initialized" value={wifiDirect.isInitialized ? 'Yes' : 'No'} />
+            <InfoRow label="Discovery" value={wifiDirect.isScanning ? 'Running' : 'Idle'} />
+            <InfoRow
+              label="Connection"
+              value={
+                wifiDirect.connectionInfo?.groupFormed
+                  ? wifiDirect.connectionInfo.isGroupOwner
+                    ? 'Group owner'
+                    : 'Connected client'
+                  : 'Not connected'
+              }
+            />
+            <InfoRow label="Peers found" value={String(wifiDirect.peers.length)} />
+          </View>
+          <Text selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
+            {wifiDirect.error ?? wifiDirect.transportNote}
+          </Text>
+        </SectionCard>
+      </AnimatedPanel>
+
+      <AnimatedPanel index={3}>
+        <SectionCard
+          eyebrow="Wi-Fi Direct"
+          title="Peer transport candidates"
+          description="Connect to a peer and send a sync-handshake message. This is scaffold-level, but it is the right path toward actual delta exchange."
+        >
+          <View style={{ gap: 12 }}>
+            {wifiDirect.peers.length === 0 ? (
+              <Text selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
+                No Wi-Fi Direct peers discovered yet. Initialize transport first, then run discovery on two Android devices.
+              </Text>
+            ) : (
+              wifiDirect.peers.map((peer) => (
+                <View
+                  key={peer.deviceAddress}
+                  style={{
+                    gap: 10,
+                    borderRadius: 22,
+                    borderCurve: 'continuous',
+                    borderWidth: 1,
+                    borderColor: palette.border,
+                    backgroundColor: palette.shell,
+                    padding: 14,
+                  }}
+                >
+                  <Text selectable style={{ color: palette.textPrimary, fontWeight: '800' }}>
+                    {peer.deviceName}
+                  </Text>
+                  <InfoRow label="Address" value={peer.deviceAddress} />
+                  <InfoRow label="Status" value={String(peer.status)} />
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                    <ActionChip label="Connect" onPress={() => wifiDirect.connectToPeer(peer.deviceAddress)} tone="primary" />
+                    <ActionChip label="Send Handshake" onPress={() => wifiDirect.sendHandshake(peer.deviceAddress)} />
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        </SectionCard>
+      </AnimatedPanel>
+
+      {wifiDirect.messages.length > 0 ? (
+        <AnimatedPanel index={4}>
+          <SectionCard
+            eyebrow="Session Log"
+            title="Wi-Fi Direct message activity"
+            description="Handshake messages and incoming payloads will appear here during development-build testing."
+          >
+            <View style={{ gap: 10 }}>
+              {wifiDirect.messages.map((entry) => (
+                <Text key={entry} selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
+                  {entry}
+                </Text>
+              ))}
+            </View>
+          </SectionCard>
+        </AnimatedPanel>
+      ) : null}
+
+      <AnimatedPanel index={5}>
+        <SectionCard
           eyebrow="Native BLE"
           title="Discovered nearby devices"
           description="This only proves scanning and discovery in a development build. It does not yet prove full sync transport."
@@ -122,7 +215,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={3}>
+      <AnimatedPanel index={6}>
         <SectionCard
           eyebrow="Topology"
           title="Relief nodes in the current scenario"
