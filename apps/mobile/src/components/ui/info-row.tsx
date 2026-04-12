@@ -12,22 +12,32 @@ export function InfoRow({ label, value }: InfoRowProps) {
     <View
       style={{
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        alignItems: 'flex-start',
         gap: 16,
         borderBottomWidth: 1,
         borderBottomColor: palette.border,
         paddingBottom: 10,
       }}
     >
-      <Text selectable style={{ color: palette.textMuted, fontWeight: '700' }}>
+      <Text
+        selectable
+        style={{
+          color: palette.textMuted,
+          flexBasis: '42%',
+          flexShrink: 0,
+          fontWeight: '700',
+        }}
+      >
         {label}
       </Text>
       <Text
         selectable
         style={{
           color: palette.textPrimary,
+          flex: 1,
           fontVariant: ['tabular-nums'],
           fontWeight: '700',
+          lineHeight: 26,
           textAlign: 'right',
         }}
       >

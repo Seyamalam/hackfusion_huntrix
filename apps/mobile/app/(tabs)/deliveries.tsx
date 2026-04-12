@@ -171,22 +171,36 @@ export default function DeliveriesScreen() {
             </AnimatedPanel>
           ))}
 
-          <AnimatedPanel index={6}>
-            <SectionCard
-              eyebrow="Resolution Log"
-              title="Manual decisions"
-              description="Every conflict resolution should be logged as part of the demo path."
-            >
-              <View style={{ gap: 10 }}>
-                {demo.resolution_log.length === 0 ? (
+      <AnimatedPanel index={6}>
+        <SectionCard
+          eyebrow="Resolution Log"
+          title="Manual decisions"
+          description="Every conflict resolution should be logged as part of the demo path."
+        >
+          <View style={{ gap: 10 }}>
+            {demo.resolution_log.length === 0 ? (
+              <Text selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
+                No resolution recorded yet.
+              </Text>
+            ) : (
+              demo.resolution_log.map((entry) => (
+                <View
+                  key={entry}
+                  style={{
+                    gap: 8,
+                    borderRadius: 18,
+                    borderCurve: 'continuous',
+                    borderWidth: 1,
+                    borderColor: palette.border,
+                    backgroundColor: palette.shell,
+                    padding: 12,
+                  }}
+                >
+                  <StatusPill label={entry.toLowerCase().includes('remote') ? 'REMOTE WIN' : 'LOCAL WIN'} tone={entry.toLowerCase().includes('remote') ? 'info' : 'warning'} />
                   <Text selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
-                    No resolution recorded yet.
+                    {entry}
                   </Text>
-                ) : (
-                  demo.resolution_log.map((entry) => (
-                    <Text key={entry} selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
-                      {entry}
-                    </Text>
+                </View>
                   ))
                 )}
               </View>

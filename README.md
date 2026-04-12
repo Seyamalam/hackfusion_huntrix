@@ -11,11 +11,17 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 
 ## Compliance Snapshot
 - `C2` Linux CI vegeta run `24307971168`: `100000` requests at `10000.05 req/s`, `9999.84 req/s` throughput, `100%` success, mean latency `190.01 µs`
+- `C3` memory snapshot: Java heap `46.36 MB`, native remaining size `7,062,487 bytes` (`~6.74 MB`) during Android profiling
 - Workflow: `.github/workflows/c2-vegeta-loadtest.yml`
 - APK workflows:
   - `.github/workflows/android-apk-build.yml`
   - `.github/workflows/generate-react-native-cicd.yml`
   - Android workflow also publishes the built APK to GitHub Releases
+
+### C3 Evidence
+Android profiling capture:
+
+![C3 Native Memory Evidence](docs/compliance/c3_profiler/native-memory.png)
 
 ## Todo/Task
 - [x] Bootstrap Expo, Go, and protobuf project structure

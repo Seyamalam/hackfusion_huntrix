@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import QRCode from 'react-native-qrcode-svg';
 
 import { ActionChip } from '@/src/components/ui/action-chip';
@@ -11,12 +10,42 @@ import { StatusPill } from '@/src/components/ui/status-pill';
 import { usePodDemo } from '@/src/features/pod/use-pod-demo';
 import { palette } from '@/src/theme/palette';
 
+type CameraPermissionState = { granted?: boolean } | null;
+
+let cameraModule:
+  | {
+      CameraView: React.ComponentType<{
+        barcodeScannerSettings?: { barcodeTypes: string[] };
+        onBarcodeScanned?: ((event: { data: string }) => void) | undefined;
+        style?: { flex: number };
+      }>;
+      useCameraPermissions: () => [
+        CameraPermissionState,
+        () => Promise<{ granted: boolean }>,
+      ];
+    }
+  | null = null;
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  cameraModule = require('expo-camera');
+} catch {
+  cameraModule = null;
+}
+
 export function PodDemoPanel() {
   const pod = usePodDemo();
-  const [permissions, requestPermission] = useCameraPermissions();
+  const [permissions, requestPermission] =
+    cameraModule?.useCameraPermissions?.() ?? [null, async () => ({ granted: false })];
   const [scanLocked, setScanLocked] = useState(false);
+  const CameraView = cameraModule?.CameraView ?? null;
 
   async function handleOpenScanner() {
+    if (!CameraView) {
+      pod.setScannerOpen(false);
+      return;
+    }
+
     if (!permissions?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
@@ -74,33 +103,43 @@ export function PodDemoPanel() {
           <SectionCard
             eyebrow="Scanner"
             title="Scan the QR challenge or response"
-            description="Use this with a second device. For one-device testing, the simulate buttons above run the same verification path."
+            description={
+              CameraView
+                ? 'Use this with a second device. For one-device testing, the simulate buttons above run the same verification path.'
+                : 'Camera module unavailable in this runtime. Use the simulate buttons above or rebuild the dev client with expo-camera.'
+            }
           >
-            <View
-              style={{
-                overflow: 'hidden',
-                borderRadius: 24,
-                borderCurve: 'continuous',
-                borderWidth: 1,
-                borderColor: palette.border,
-                height: 280,
-              }}
-            >
-              <CameraView
-                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                onBarcodeScanned={
-                  scanLocked
-                    ? undefined
-                    : ({ data }) => {
-                        setScanLocked(true);
-                        void pod.processScannedValue(data).finally(() => {
-                          setTimeout(() => setScanLocked(false), 1200);
-                        });
-                      }
-                }
-                style={{ flex: 1 }}
-              />
-            </View>
+            {CameraView ? (
+              <View
+                style={{
+                  overflow: 'hidden',
+                  borderRadius: 24,
+                  borderCurve: 'continuous',
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                  height: 280,
+                }}
+              >
+                <CameraView
+                  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                  onBarcodeScanned={
+                    scanLocked
+                      ? undefined
+                      : ({ data }) => {
+                          setScanLocked(true);
+                          void pod.processScannedValue(data).finally(() => {
+                            setTimeout(() => setScanLocked(false), 1200);
+                          });
+                        }
+                  }
+                  style={{ flex: 1 }}
+                />
+              </View>
+            ) : (
+              <Text selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
+                Scanner unavailable in this build. The PoD protocol can still be demonstrated with the simulation controls.
+              </Text>
+            )}
             <ActionChip label="Close Scanner" onPress={() => pod.setScannerOpen(false)} />
           </SectionCard>
         </AnimatedPanel>

@@ -1,26 +1,8 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import React from 'react';
-import { Link, Tabs } from 'expo-router';
-import { Pressable, Text } from 'react-native';
+import { Tabs } from 'expo-router';
 
 import { palette } from '@/src/theme/palette';
-
-function HeaderAction() {
-  return (
-    <Link href="/modal" asChild>
-      <Pressable
-        style={{
-          borderRadius: 999,
-          backgroundColor: palette.surfaceStrong,
-          paddingHorizontal: 12,
-          paddingVertical: 8,
-        }}
-      >
-        <Text style={{ color: palette.textPrimary, fontWeight: '700' }}>Scenario</Text>
-      </Pressable>
-    </Link>
-  );
-}
 
 export default function TabLayout() {
   return (
@@ -44,7 +26,6 @@ export default function TabLayout() {
           title: 'Command',
           tabBarLabel: 'Command',
           tabBarIcon: ({ color }) => <FontAwesome name="dashboard" size={18} color={color} />,
-          headerRight: HeaderAction,
         }}
       />
       <Tabs.Screen
@@ -53,7 +34,6 @@ export default function TabLayout() {
           title: 'Deliveries',
           tabBarLabel: 'Deliveries',
           tabBarIcon: ({ color }) => <FontAwesome name="dropbox" size={18} color={color} />,
-          headerRight: HeaderAction,
         }}
       />
       <Tabs.Screen
@@ -62,7 +42,6 @@ export default function TabLayout() {
           title: 'Network',
           tabBarLabel: 'Network',
           tabBarIcon: ({ color }) => <FontAwesome name="exchange" size={18} color={color} />,
-          headerRight: HeaderAction,
         }}
       />
       <Tabs.Screen
@@ -71,7 +50,6 @@ export default function TabLayout() {
           title: 'Auth',
           tabBarLabel: 'Auth',
           tabBarIcon: ({ color }) => <FontAwesome name="shield" size={18} color={color} />,
-          headerRight: HeaderAction,
         }}
       />
     </Tabs>

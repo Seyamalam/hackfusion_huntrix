@@ -238,9 +238,26 @@ export default function NetworkScreen() {
           >
             <View style={{ gap: 10 }}>
               {wifiDirect.messages.map((entry) => (
-                <Text key={entry} selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
-                  {entry}
-                </Text>
+                <View
+                  key={entry}
+                  style={{
+                    gap: 8,
+                    borderRadius: 18,
+                    borderCurve: 'continuous',
+                    borderWidth: 1,
+                    borderColor: palette.border,
+                    backgroundColor: palette.shell,
+                    padding: 12,
+                  }}
+                >
+                  <StatusPill
+                    label={entry.includes('handshake') ? 'HANDSHAKE' : entry.includes('delta') ? 'DELTA BUNDLE' : 'SESSION EVENT'}
+                    tone={entry.includes('handshake') ? 'info' : entry.includes('delta') ? 'success' : 'neutral'}
+                  />
+                  <Text selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
+                    {entry}
+                  </Text>
+                </View>
               ))}
             </View>
           </SectionCard>
@@ -357,9 +374,28 @@ export default function NetworkScreen() {
           >
             <View style={{ gap: 10 }}>
               {mesh.events.map((event) => (
-                <Text key={`${event.timestamp}-${event.detail}`} selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
-                  [{event.type}] {event.detail}
-                </Text>
+                <View
+                  key={`${event.timestamp}-${event.detail}`}
+                  style={{
+                    gap: 8,
+                    borderRadius: 18,
+                    borderCurve: 'continuous',
+                    borderWidth: 1,
+                    borderColor: palette.border,
+                    backgroundColor: palette.shell,
+                    padding: 12,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                    <StatusPill label={formatMeshEventType(event.type)} tone={toneForMeshEvent(event.type)} />
+                    <Text selectable style={{ color: palette.textMuted, fontWeight: '700' }}>
+                      {formatEventTimestamp(event.timestamp)}
+                    </Text>
+                  </View>
+                  <Text selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
+                    {event.detail}
+                  </Text>
+                </View>
               ))}
             </View>
           </SectionCard>
@@ -469,4 +505,32 @@ function coordinateLabel(lat: number, lng: number) {
 function describeNode(nodeID: string, network: NetworkStatus) {
   const routes = network.edges.filter((edge) => edge.source === nodeID || edge.target === nodeID);
   return `${routes.length} connected route${routes.length === 1 ? '' : 's'} currently tracked for this node.`;
+}
+
+function formatMeshEventType(value: string) {
+  return value.replace(/_/g, ' ').toUpperCase();
+}
+
+function toneForMeshEvent(value: string) {
+  switch (value) {
+    case 'delivered':
+      return 'success' as const;
+    case 'role_switched':
+      return 'info' as const;
+    case 'ttl_expired':
+    case 'dedupe_drop':
+      return 'alert' as const;
+    default:
+      return 'neutral' as const;
+  }
+}
+
+function formatEventTimestamp(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value));
 }

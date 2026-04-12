@@ -28,7 +28,7 @@ import {
   type TriageStatusResponse,
 } from '@/src/features/dashboard/dashboard-api';
 import { syncSignals } from '@/src/features/dashboard/dashboard-data';
-import { RouteGraphCard } from '@/src/features/dashboard/route-graph-card';
+import { MissionSummaryCard } from '@/src/features/dashboard/mission-summary-card';
 import { TriagePanel } from '@/src/features/dashboard/triage-panel';
 import { FleetOrchestrationPanel } from '@/src/features/fleet/fleet-orchestration-panel';
 import { PredictivePanel } from '@/src/features/predictive/predictive-panel';
@@ -175,7 +175,7 @@ export default function CommandScreen() {
       </AnimatedPanel>
 
       <AnimatedPanel index={3}>
-        <RouteGraphCard network={liveNetwork} mission={primaryMission} />
+        <MissionSummaryCard mission={primaryMission} />
       </AnimatedPanel>
 
       <AnimatedPanel index={4}>

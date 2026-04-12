@@ -28,7 +28,7 @@ export function FleetOrchestrationPanel({ fleet }: { fleet: FleetOrchestrationSt
           <View
             key={zone.node_id}
             style={{
-              gap: 8,
+              gap: 12,
               borderRadius: 18,
               borderCurve: 'continuous',
               padding: 12,
@@ -40,7 +40,7 @@ export function FleetOrchestrationPanel({ fleet }: { fleet: FleetOrchestrationSt
             <Text selectable style={{ color: palette.textPrimary, fontWeight: '800' }}>
               Drone-required zone: {zone.name}
             </Text>
-            <InfoRow label="Reason" value={zone.reason} />
+            <DetailBlock label="Reason" value={zone.reason} />
             <InfoRow label="Truck reachable" value={zone.truck_reachable ? 'Yes' : 'No'} />
             <InfoRow label="Boat reachable" value={zone.boat_reachable ? 'Yes' : 'No'} />
             <InfoRow label="Drone reachable" value={zone.drone_reachable ? 'Yes' : 'No'} />
@@ -53,7 +53,7 @@ export function FleetOrchestrationPanel({ fleet }: { fleet: FleetOrchestrationSt
           <View
             key={scenario.scenario_id}
             style={{
-              gap: 8,
+              gap: 12,
               borderRadius: 18,
               borderCurve: 'continuous',
               padding: 12,
@@ -65,10 +65,19 @@ export function FleetOrchestrationPanel({ fleet }: { fleet: FleetOrchestrationSt
             <Text selectable style={{ color: palette.textPrimary, fontWeight: '800' }}>
               {scenario.label}
             </Text>
-            <InfoRow label="Meeting node" value={`${scenario.best_meeting_node_id} (${scenario.best_meeting_lat.toFixed(3)}, ${scenario.best_meeting_lng.toFixed(3)})`} />
+            <DetailBlock
+              label="Meeting node"
+              value={`${scenario.best_meeting_node_id} (${scenario.best_meeting_lat.toFixed(3)}, ${scenario.best_meeting_lng.toFixed(3)})`}
+            />
             <InfoRow label="Boat travel" value={`${scenario.boat_travel_mins} min`} />
-            <InfoRow label="Drone travel" value={`${scenario.drone_travel_mins} + ${scenario.drone_final_leg_mins} min`} />
+            <DetailBlock
+              label="Drone travel"
+              value={`${scenario.drone_travel_mins} + ${scenario.drone_final_leg_mins} min`}
+            />
             <InfoRow label="Combined mission" value={`${scenario.combined_mission_mins} min`} />
+            <Text selectable style={{ color: palette.textSecondary, lineHeight: 21 }}>
+              {scenario.explanation}
+            </Text>
           </View>
         ))}
       </View>
@@ -88,13 +97,82 @@ export function FleetOrchestrationPanel({ fleet }: { fleet: FleetOrchestrationSt
           {fleet.status.handoff.scenario_label}
         </Text>
         <InfoRow label="PoD receipt" value={fleet.status.handoff.pod_receipt_id} />
-        <InfoRow label="Ownership" value={`${fleet.status.handoff.ownership_before} -> ${fleet.status.handoff.ownership_after}`} />
+        <DetailBlock
+          label="Ownership"
+          value={`${fleet.status.handoff.ownership_before} -> ${fleet.status.handoff.ownership_after}`}
+        />
         {fleet.status.handoff.ledger_history.map((entry) => (
-          <Text key={`${entry.event_type}-${entry.created_at}`} selectable style={{ color: palette.textSecondary, lineHeight: 21 }}>
-            [{entry.event_type}] {entry.detail}
-          </Text>
+          <View
+            key={`${entry.event_type}-${entry.created_at}`}
+            style={{
+              gap: 8,
+              borderRadius: 16,
+              borderCurve: 'continuous',
+              padding: 10,
+              backgroundColor: '#f4efe6',
+              borderWidth: 1,
+              borderColor: palette.border,
+            }}
+          >
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <StatusPill label={formatEventType(entry.event_type)} tone={toneForEvent(entry.event_type)} />
+              <Text selectable style={{ color: palette.textMuted, fontWeight: '700' }}>
+                {formatTimestamp(entry.created_at)}
+              </Text>
+            </View>
+            <Text selectable style={{ color: palette.textSecondary, lineHeight: 21 }}>
+              {entry.detail}
+            </Text>
+          </View>
         ))}
       </View>
     </SectionCard>
   );
+}
+
+function DetailBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <View
+      style={{
+        gap: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: palette.border,
+        paddingBottom: 10,
+      }}
+    >
+      <Text selectable style={{ color: palette.textMuted, fontWeight: '700' }}>
+        {label}
+      </Text>
+      <Text selectable style={{ color: palette.textPrimary, fontWeight: '700', lineHeight: 22 }}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function formatEventType(value: string) {
+  return value.replace(/_/g, ' ').toUpperCase();
+}
+
+function toneForEvent(value: string) {
+  switch (value) {
+    case 'ownership_transferred':
+      return 'success' as const;
+    case 'drone_countersigned':
+      return 'info' as const;
+    case 'pod_challenge_generated':
+      return 'warning' as const;
+    default:
+      return 'neutral' as const;
+  }
+}
+
+function formatTimestamp(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value));
 }

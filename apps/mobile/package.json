@@ -8,7 +8,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "eslint .",
-    "release": "expo run:android --variant release"
+    "release": "node scripts/ensure-short-windows-path.cjs && expo run:android --variant release"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -19,6 +19,7 @@
     "@stablelib/aes": "^2.0.1",
     "@stablelib/gcm": "^2.0.1",
     "expo": "~54.0.33",
+    "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",
     "expo-crypto": "~15.0.8",
     "expo-dev-client": "~6.0.20",
