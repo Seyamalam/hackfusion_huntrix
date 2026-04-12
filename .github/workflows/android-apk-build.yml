@@ -3,6 +3,9 @@ name: Android APK Build
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -37,11 +40,38 @@ jobs:
           cd android
           ./gradlew assembleRelease -x lint -x test --no-daemon
 
+      - name: Locate APK
+        id: locate_apk
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "No APK found"
+            exit 1
+          fi
+          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
+          echo "apk_name=$(basename "$APK_PATH")" >> "$GITHUB_OUTPUT"
+
+      - name: Create release tag
+        id: release_meta
+        run: |
+          TAG="apk-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-release-apk
-          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+          path: apps/mobile/${{ steps.locate_apk.outputs.apk_path }}
+
+      - name: Publish APK to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.release_meta.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --title "Android APK ${{ steps.release_meta.outputs.tag }}" \
+            --notes "Automated Android APK build for Huntrix Delta." \
+            "${{ steps.locate_apk.outputs.apk_path }}#${{ steps.locate_apk.outputs.apk_name }}"
 
       - name: Upload Gradle reports on failure
         if: failure()

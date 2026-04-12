@@ -51,7 +51,7 @@ jobs:
       - name: Run Vegeta attack
         run: |
           mkdir -p docs/compliance
-          printf 'GET http://127.0.0.1:8080/healthz\n' > vegeta-targets.txt
+          printf 'GET http://127.0.0.1:8080/api/fleet/orchestration/status\n' > vegeta-targets.txt
           "$(go env GOPATH)/bin/vegeta" attack \
             -targets=vegeta-targets.txt \
             -rate=10000/s \
@@ -70,7 +70,7 @@ jobs:
             echo
             echo "Runner: ubuntu-latest"
             echo
-            echo "Target: http://127.0.0.1:8080/healthz"
+            echo "Target: http://127.0.0.1:8080/api/fleet/orchestration/status"
             echo
             echo "Rate: 10000/s"
             echo

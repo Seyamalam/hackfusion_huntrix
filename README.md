@@ -15,6 +15,7 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - APK workflows:
   - `.github/workflows/android-apk-build.yml`
   - `.github/workflows/generate-react-native-cicd.yml`
+  - Android workflow also publishes the built APK to GitHub Releases
 
 ## Todo/Task
 - [x] Bootstrap Expo, Go, and protobuf project structure
@@ -181,6 +182,7 @@ If Go dependency fetch is blocked on your network, the generator still emits the
 ### Android APK
 - Manually run `Android APK Build`
 - Download the `android-release-apk` artifact
+- Or download the APK from the GitHub Release created by the workflow
 
 ### Marketplace Generator
 - Manually run `Generate React Native CI/CD Workflow`
