@@ -19,6 +19,31 @@ Working project name: `Huntrix Delta`
 4. `ml`
    Python training pipeline and exported risk artifacts used by the routing engine.
 
+## System Flowchart
+```mermaid
+flowchart TD
+    A[Field Operator / Volunteer] --> B[Expo Mobile App]
+    B --> C[Local Durable Store]
+    B --> D[QR Handoff UI]
+    B --> E[Offline Status Dashboard]
+    C --> F[CRDT Sync Engine]
+    F --> G[Encrypted Relay Envelope]
+    G --> H[Peer Node / Mesh Relay]
+    H --> I[Receiving Node Store]
+    I --> F
+    C --> J[Go Core Services]
+    J --> K[Routing Engine]
+    J --> L[Triage Engine]
+    J --> M[PoD Verification]
+    J --> N[Auth / RBAC]
+    O[Scenario Map + Chaos Events] --> K
+    P[ML Risk Model] --> K
+    K --> E
+    L --> E
+    M --> C
+    N --> B
+```
+
 ## CAP Trade-Off
 We choose **Availability + Partition Tolerance** over strict immediate consistency.
 
@@ -113,6 +138,141 @@ Responsibilities:
 6. Routing engine recalculates based on map state, risk signals, and cargo priority.
 7. Driver or volunteer executes handoff via signed QR challenge.
 8. Receipt event becomes part of the replicated ledger.
+
+## End-to-End Operational Flow
+```mermaid
+flowchart LR
+    A[Create Delivery] --> B[Write Local Entity + Vector Clock]
+    B --> C[Package Sync Operation]
+    C --> D[Encrypt Payload]
+    D --> E[Relay Through Mesh Peers]
+    E --> F[Merge at Target Replica]
+    F --> G[Recompute Route]
+    G --> H[Apply Triage + Risk Penalties]
+    H --> I[Dispatch Vehicle]
+    I --> J[Generate Signed QR Challenge]
+    J --> K[Receiver Verifies + Signs Receipt]
+    K --> L[Append Receipt to Ledger]
+    L --> M[Sync Converges Across Nodes]
+```
+
+## Module Flowcharts
+
+### M1 - Authentication and Identity
+```mermaid
+flowchart TD
+    A[User Opens App] --> B[Select Role / Device Identity]
+    B --> C[Local Challenge or OTP-like Verification]
+    C --> D{Valid?}
+    D -- No --> E[Reject Login Attempt]
+    D -- Yes --> F[Unlock Private Key Material]
+    F --> G[Load RBAC Permissions]
+    G --> H[Append Audit Event Locally]
+    H --> I[Enter Offline App Session]
+```
+
+### M2 and M3 - CRDT Sync and Mesh Relay
+```mermaid
+flowchart TD
+    A[Local Entity Change] --> B[Attach Vector Clock]
+    B --> C[Create Sync Operation]
+    C --> D[Encrypt Into Relay Envelope]
+    D --> E[Assign TTL + Dedupe Key]
+    E --> F[Store in Outbox]
+    F --> G[Nearby Peer Discovered]
+    G --> H[Forward Envelope]
+    H --> I{Peer Online?}
+    I -- No --> J[Persist for Later Retry]
+    I -- Yes --> K[Deliver to Replica]
+    K --> L[Verify Envelope]
+    L --> M[Merge CRDT State]
+    M --> N{Conflict?}
+    N -- Yes --> O[Mark Conflict State in UI]
+    N -- No --> P[Mark Verified / Synced]
+```
+
+### M4 - Multi-Modal Routing Engine
+```mermaid
+flowchart TD
+    A[Route Request] --> B[Load Graph Nodes and Edges]
+    B --> C[Filter Edges by Vehicle Type]
+    C --> D[Apply Blocked Edge Rules]
+    D --> E[Apply Risk and Priority Penalties]
+    E --> F[Run Dijkstra / A*]
+    F --> G{Route Found?}
+    G -- No --> H[Escalate to Alternate Mode or Operator]
+    G -- Yes --> I[Return Route Plan + ETA]
+    I --> J[Display on Dashboard]
+```
+
+### M5 - Proof-of-Delivery Flow
+```mermaid
+flowchart TD
+    A[Driver Arrives at Handoff Point] --> B[Generate QR Challenge]
+    B --> C[Include Delivery ID + Sender Pubkey + Payload Hash + Nonce + Timestamp]
+    C --> D[Sign Challenge]
+    D --> E[Receiver Scans QR]
+    E --> F[Verify Signature and Freshness]
+    F --> G{Valid and Not Replayed?}
+    G -- No --> H[Reject Handoff]
+    G -- Yes --> I[Receiver Signs Receipt]
+    I --> J[Append Chain-of-Custody Event]
+    J --> K[Sync Receipt Ledger]
+```
+
+### M6 - Triage and Priority Preemption
+```mermaid
+flowchart TD
+    A[Active Deliveries] --> B[Assign Priority Tier P0-P3]
+    B --> C[Compute Current ETA]
+    C --> D[Simulate 30 Percent Slowdown]
+    D --> E{SLA Breach Predicted?}
+    E -- No --> F[Keep Current Assignment]
+    E -- Yes --> G[Search Lower Priority Cargo]
+    G --> H[Recommend Drop-and-Reroute]
+    H --> I[Update Operator Dashboard]
+    I --> J[Feed Revised Priority into Routing]
+```
+
+### M7 - Predictive Route Decay
+```mermaid
+flowchart TD
+    A[Rainfall + Elevation + Saturation Inputs] --> B[Feature Pipeline]
+    B --> C[Binary Risk Classifier]
+    C --> D[Predict Edge Impassable Within Two Hours]
+    D --> E[Write Risk Score Per Edge]
+    E --> F[Penalize High-Risk Edges]
+    F --> G[Trigger Proactive Reroute]
+    G --> H[Show Risk Overlay in UI]
+```
+
+### M8 - Drone Handoff Orchestration
+```mermaid
+flowchart TD
+    A[Ground Route Fails or Zone Unreachable] --> B[Mark Zone as Drone Required]
+    B --> C[Compute Rendezvous Point]
+    C --> D[Boat / Truck Moves to Rendezvous]
+    D --> E[Drone Moves to Rendezvous]
+    E --> F[Battery Check and Broadcast Throttling]
+    F --> G[Generate Handoff PoD]
+    G --> H[Transfer Ownership to Drone]
+    H --> I[Finalize Last-Mile Delivery]
+```
+
+## Module Dependency View
+```mermaid
+flowchart TD
+    A[M1 Auth] --> B[M2 CRDT Sync]
+    A --> C[M5 PoD]
+    B --> D[M3 Mesh Relay]
+    B --> E[M4 Routing]
+    E --> F[M6 Triage]
+    G[M7 ML Route Decay] --> E
+    F --> E
+    C --> B
+    E --> H[M8 Drone Handoff]
+    C --> H
+```
 
 ## Initial Repo Decision
 Use a single Expo codebase for the main client.
