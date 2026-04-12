@@ -75,6 +75,81 @@ export type MissionPlansResponse = {
   missions: MissionPlan[];
 };
 
+export type PriorityTier = {
+  tier: string;
+  label: string;
+  sla_hours: number;
+  last_writer: string;
+  updated_at: string;
+  vector_clock: Record<string, number>;
+};
+
+export type CargoPrediction = {
+  cargo_id: string;
+  name: string;
+  priority: string;
+  base_eta_mins: number;
+  current_eta_mins: number;
+  slowdown_pct: number;
+  sla_window_mins: number;
+  will_breach: boolean;
+  requires_review: boolean;
+  recommended_track: string;
+};
+
+export type TriageDecision = {
+  triggered: boolean;
+  action: string;
+  safe_waypoint: string;
+  drop_cargo_ids: string[];
+  keep_cargo_ids: string[];
+  reroute_vehicle: string;
+  current_eta_mins: number;
+  reroute_eta_mins: number;
+  decision_reason: string;
+  audit_trail_anchor: string;
+};
+
+export type TriageSnapshot = {
+  scenario_name: string;
+  trigger_source: string;
+  mode: string;
+  baseline_eta_mins: number;
+  current_eta_mins: number;
+  slowdown_pct: number;
+  priority_tiers: PriorityTier[];
+  cargo_items: {
+    cargo_id: string;
+    name: string;
+    priority: string;
+    sla_hours: number;
+    payload_kg: number;
+    mission_id: string;
+    destination_node: string;
+    safe_waypoint: string;
+    status: string;
+    last_writer: string;
+    updated_at: string;
+    vector_clock: Record<string, number>;
+  }[];
+  predictions: CargoPrediction[];
+  decision: TriageDecision;
+  audit_log: {
+    id: string;
+    type: string;
+    created_at: string;
+    detail: string;
+    prev_hash: string;
+    hash: string;
+  }[];
+};
+
+export type TriageStatusResponse = {
+  snapshot: TriageSnapshot;
+  decision: TriageDecision;
+  recompute_ms: number;
+};
+
 export type NetworkStatus = {
   metadata: {
     region: string;
@@ -161,6 +236,65 @@ export const missionFallback: MissionPlansResponse = {
   ],
 };
 
+export const triageFallback: TriageStatusResponse = {
+  recompute_ms: 24,
+  decision: {
+    triggered: true,
+    action: 'Deposit P2/P3 cargo at waypoint N2 and reroute with P0/P1 cargo only.',
+    safe_waypoint: 'N2',
+    drop_cargo_ids: ['cargo-p2-shelter', 'cargo-p3-hygiene'],
+    keep_cargo_ids: ['cargo-p0-antivenom', 'cargo-p1-insulin'],
+    reroute_vehicle: 'truck -> drone',
+    current_eta_mins: 210,
+    reroute_eta_mins: 36,
+    decision_reason: 'Convoy slowdown exceeded 30% and critical cargo would breach SLA without preemption.',
+    audit_trail_anchor: 'triage-audit-anchor',
+  },
+  snapshot: {
+    scenario_name: 'Autonomous Triage Drill',
+    trigger_source: 'Primary truck corridor is unavailable; fallback delay estimate applied.',
+    mode: 'simulated_breach',
+    baseline_eta_mins: 65,
+    current_eta_mins: 210,
+    slowdown_pct: 223,
+    priority_tiers: [
+      { tier: 'P0', label: 'Critical Medical', sla_hours: 2, last_writer: 'triage-engine', updated_at: '2026-04-12T08:00:00Z', vector_clock: { 'triage-engine': 1 } },
+      { tier: 'P1', label: 'High Priority', sla_hours: 6, last_writer: 'triage-engine', updated_at: '2026-04-12T08:00:00Z', vector_clock: { 'triage-engine': 2 } },
+      { tier: 'P2', label: 'Standard Relief', sla_hours: 24, last_writer: 'triage-engine', updated_at: '2026-04-12T08:00:00Z', vector_clock: { 'triage-engine': 3 } },
+      { tier: 'P3', label: 'Low Priority', sla_hours: 72, last_writer: 'triage-engine', updated_at: '2026-04-12T08:00:00Z', vector_clock: { 'triage-engine': 4 } },
+    ],
+    cargo_items: [
+      { cargo_id: 'cargo-p0-antivenom', name: 'Antivenom cold pack', priority: 'P0', sla_hours: 2, payload_kg: 4, mission_id: 'mission-companyganj-convoy', destination_node: 'N4', safe_waypoint: 'N2', status: 'loaded', last_writer: 'triage-engine', updated_at: '2026-04-12T08:00:00Z', vector_clock: { 'triage-engine': 1 } },
+      { cargo_id: 'cargo-p1-insulin', name: 'Insulin cooler', priority: 'P1', sla_hours: 6, payload_kg: 6, mission_id: 'mission-companyganj-convoy', destination_node: 'N4', safe_waypoint: 'N2', status: 'loaded', last_writer: 'triage-engine', updated_at: '2026-04-12T08:00:00Z', vector_clock: { 'triage-engine': 2 } },
+      { cargo_id: 'cargo-p2-shelter', name: 'Shelter tarp bundle', priority: 'P2', sla_hours: 24, payload_kg: 35, mission_id: 'mission-companyganj-convoy', destination_node: 'N4', safe_waypoint: 'N2', status: 'loaded', last_writer: 'triage-engine', updated_at: '2026-04-12T08:00:00Z', vector_clock: { 'triage-engine': 3 } },
+      { cargo_id: 'cargo-p3-hygiene', name: 'Hygiene kit crate', priority: 'P3', sla_hours: 72, payload_kg: 45, mission_id: 'mission-companyganj-convoy', destination_node: 'N4', safe_waypoint: 'N2', status: 'loaded', last_writer: 'triage-engine', updated_at: '2026-04-12T08:00:00Z', vector_clock: { 'triage-engine': 4 } },
+    ],
+    predictions: [
+      { cargo_id: 'cargo-p0-antivenom', name: 'Antivenom cold pack', priority: 'P0', base_eta_mins: 65, current_eta_mins: 210, slowdown_pct: 223, sla_window_mins: 120, will_breach: true, requires_review: true, recommended_track: 'keep_onboard' },
+      { cargo_id: 'cargo-p1-insulin', name: 'Insulin cooler', priority: 'P1', base_eta_mins: 65, current_eta_mins: 210, slowdown_pct: 223, sla_window_mins: 360, will_breach: false, requires_review: true, recommended_track: 'keep_onboard' },
+      { cargo_id: 'cargo-p2-shelter', name: 'Shelter tarp bundle', priority: 'P2', base_eta_mins: 65, current_eta_mins: 210, slowdown_pct: 223, sla_window_mins: 1440, will_breach: false, requires_review: true, recommended_track: 'drop_at_waypoint' },
+      { cargo_id: 'cargo-p3-hygiene', name: 'Hygiene kit crate', priority: 'P3', base_eta_mins: 65, current_eta_mins: 210, slowdown_pct: 223, sla_window_mins: 4320, will_breach: false, requires_review: true, recommended_track: 'drop_at_waypoint' },
+    ],
+    decision: {
+      triggered: true,
+      action: 'Deposit P2/P3 cargo at waypoint N2 and reroute with P0/P1 cargo only.',
+      safe_waypoint: 'N2',
+      drop_cargo_ids: ['cargo-p2-shelter', 'cargo-p3-hygiene'],
+      keep_cargo_ids: ['cargo-p0-antivenom', 'cargo-p1-insulin'],
+      reroute_vehicle: 'truck -> drone',
+      current_eta_mins: 210,
+      reroute_eta_mins: 36,
+      decision_reason: 'Convoy slowdown exceeded 30% and critical cargo would breach SLA without preemption.',
+      audit_trail_anchor: 'triage-audit-anchor',
+    },
+    audit_log: [
+      { id: 'triage-1', type: 'slowdown_detected', created_at: '2026-04-12T08:00:00Z', detail: 'Primary truck corridor is unavailable; fallback delay estimate applied. Slowdown measured at 223%.', prev_hash: 'GENESIS', hash: 'triage-hash-1' },
+      { id: 'triage-2', type: 'breach_prediction', created_at: '2026-04-12T08:00:01Z', detail: '1 cargo item(s) predicted to breach SLA.', prev_hash: 'triage-hash-1', hash: 'triage-hash-2' },
+      { id: 'triage-3', type: 'autonomous_preemption', created_at: '2026-04-12T08:00:02Z', detail: 'Convoy slowdown exceeded 30% and critical cargo would breach SLA without preemption.', prev_hash: 'triage-hash-2', hash: 'triage-hash-3' },
+    ],
+  },
+};
+
 export async function fetchDashboardSummary(signal?: AbortSignal): Promise<DashboardSummary> {
   const response = await fetch(`${apiBaseUrl}/api/dashboard/summary`, { signal });
   if (!response.ok) {
@@ -186,4 +320,13 @@ export async function fetchMissionPlans(signal?: AbortSignal): Promise<MissionPl
   }
 
   return (await response.json()) as MissionPlansResponse;
+}
+
+export async function fetchTriageStatus(signal?: AbortSignal): Promise<TriageStatusResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/triage/status`, { signal });
+  if (!response.ok) {
+    throw new Error(`triage request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as TriageStatusResponse;
 }

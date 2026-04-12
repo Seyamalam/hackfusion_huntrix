@@ -12,20 +12,25 @@ import {
   fetchDashboardSummary,
   fetchMissionPlans,
   fetchNetworkStatus,
+  fetchTriageStatus,
   missionFallback,
   networkFallback,
+  triageFallback,
   type DashboardSummary,
   type MissionPlansResponse,
   type NetworkStatus,
+  type TriageStatusResponse,
 } from '@/src/features/dashboard/dashboard-api';
 import { syncSignals } from '@/src/features/dashboard/dashboard-data';
 import { RouteGraphCard } from '@/src/features/dashboard/route-graph-card';
+import { TriagePanel } from '@/src/features/dashboard/triage-panel';
 import { palette } from '@/src/theme/palette';
 
 export default function CommandScreen() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [network, setNetwork] = useState<NetworkStatus | null>(null);
   const [missions, setMissions] = useState<MissionPlansResponse | null>(null);
+  const [triage, setTriage] = useState<TriageStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,11 +40,13 @@ export default function CommandScreen() {
       fetchDashboardSummary(controller.signal),
       fetchNetworkStatus(controller.signal),
       fetchMissionPlans(controller.signal),
+      fetchTriageStatus(controller.signal),
     ])
-      .then(([nextSummary, nextNetwork, nextMissions]) => {
+      .then(([nextSummary, nextNetwork, nextMissions, nextTriage]) => {
         setSummary(nextSummary);
         setNetwork(nextNetwork);
         setMissions(nextMissions);
+        setTriage(nextTriage);
         setError(null);
       })
       .catch((fetchError: unknown) => {
@@ -55,6 +62,7 @@ export default function CommandScreen() {
   const liveSummary = summary ?? dashboardFallback;
   const liveNetwork = network ?? networkFallback;
   const liveMissions = missions ?? missionFallback;
+  const liveTriage = triage ?? triageFallback;
   const primaryMission = liveMissions.missions[0] ?? missionFallback.missions[0];
   const metrics = [
     {
@@ -155,6 +163,10 @@ export default function CommandScreen() {
       </AnimatedPanel>
 
       <AnimatedPanel index={4}>
+        <TriagePanel triage={liveTriage} />
+      </AnimatedPanel>
+
+      <AnimatedPanel index={5}>
         <SectionCard
           eyebrow="Priority Pressure"
           title="Narrate the decision, not the math"
@@ -162,8 +174,8 @@ export default function CommandScreen() {
         >
           <View style={{ gap: 10 }}>
             <InfoRow label="Priority under stress" value="P0 Medical" />
-            <InfoRow label="Fallback delivery mode" value={primaryMission?.handoffs[0] ? `${primaryMission.handoffs[0].from_vehicle} -> ${primaryMission.handoffs[0].to_vehicle}` : 'Direct route'} />
-            <InfoRow label="Decision trigger" value={`Recompute in ${liveMissions.recompute_ms} ms`} />
+            <InfoRow label="Fallback delivery mode" value={liveTriage.decision.reroute_vehicle || (primaryMission?.handoffs[0] ? `${primaryMission.handoffs[0].from_vehicle} -> ${primaryMission.handoffs[0].to_vehicle}` : 'Direct route')} />
+            <InfoRow label="Decision trigger" value={`Slowdown ${liveTriage.snapshot.slowdown_pct}%`} />
           </View>
         </SectionCard>
       </AnimatedPanel>

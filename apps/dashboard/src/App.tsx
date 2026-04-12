@@ -113,6 +113,7 @@ function App() {
   const blockedEdges = snapshot.graph.edges.filter((edge) => edge.is_flooded);
   const openEdges = snapshot.graph.edges.filter((edge) => !edge.is_flooded);
   const primaryMission = snapshot.missions.missions[0];
+  const triage = snapshot.triage;
 
   return (
     <main className="shell">
@@ -260,8 +261,47 @@ function App() {
               <MetricCard label="Blocked" value={snapshot.summary.blocked_edge_count} tone="danger" />
               <MetricCard label="Routes" value={snapshot.summary.route_previews.length} tone="good" />
               <MetricCard label="Handoffs" value={primaryMission?.handoffs.length ?? 0} tone="neutral" />
+              <MetricCard label="Slowdown" value={triage.snapshot.slowdown_pct} tone="danger" />
             </div>
             {error ? <p className="warning-banner">Live refresh error: {error}</p> : null}
+          </article>
+
+          <article className="panel routes-panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Module 6</p>
+                <h2>Autonomous triage engine</h2>
+              </div>
+            </div>
+            <div className="route-list">
+              <div className="route-card">
+                <div className="route-topline">
+                  <span className="vehicle-pill" data-vehicle="truck">
+                    {triage.snapshot.mode}
+                  </span>
+                  <span>{triage.snapshot.slowdown_pct}% slowdown</span>
+                </div>
+                <strong>{triage.snapshot.trigger_source}</strong>
+                <p>{triage.decision.action}</p>
+                <p>
+                  Safe waypoint: {triage.decision.safe_waypoint || 'n/a'} | Reroute ETA: {triage.decision.reroute_eta_mins} min
+                </p>
+              </div>
+              {triage.snapshot.predictions.map((prediction) => (
+                <div className="route-card" key={prediction.cargo_id}>
+                  <div className="route-topline">
+                    <span className="vehicle-pill" data-vehicle={prediction.priority === "P0" ? "truck" : prediction.priority === "P1" ? "speedboat" : "drone"}>
+                      {prediction.priority}
+                    </span>
+                    <span>{prediction.sla_window_mins / 60}h SLA</span>
+                  </div>
+                  <strong>{prediction.name}</strong>
+                  <p>
+                    ETA {prediction.current_eta_mins} min | breach: {prediction.will_breach ? "yes" : "no"} | track: {prediction.recommended_track}
+                  </p>
+                </div>
+              ))}
+            </div>
           </article>
 
           <article className="panel routes-panel">

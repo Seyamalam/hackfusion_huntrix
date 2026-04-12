@@ -11,6 +11,7 @@ import (
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/chaos"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/routing"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/scenario"
+	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/triage"
 )
 
 type Server struct {
@@ -78,6 +79,25 @@ type MissionPlansResponse struct {
 	Missions           []MissionPlanResponse `json:"missions"`
 }
 
+type TriageStatusResponse struct {
+	Snapshot    triage.Snapshot    `json:"snapshot"`
+	Decision    PreemptionDecision `json:"decision"`
+	RecomputeMs int64              `json:"recompute_ms"`
+}
+
+type PreemptionDecision struct {
+	Triggered        bool     `json:"triggered"`
+	Action           string   `json:"action"`
+	SafeWaypoint     string   `json:"safe_waypoint"`
+	DropCargoIDs     []string `json:"drop_cargo_ids"`
+	KeepCargoIDs     []string `json:"keep_cargo_ids"`
+	RerouteVehicle   string   `json:"reroute_vehicle"`
+	CurrentETAMins   int      `json:"current_eta_mins"`
+	RerouteETAMins   int      `json:"reroute_eta_mins"`
+	DecisionReason   string   `json:"decision_reason"`
+	AuditTrailAnchor string   `json:"audit_trail_anchor"`
+}
+
 func NewServer(mapPath, chaosURL string) *Server {
 	server := &Server{
 		mapPath:       mapPath,
@@ -91,6 +111,7 @@ func NewServer(mapPath, chaosURL string) *Server {
 	server.httpMux.HandleFunc("/api/route/preview", server.handleRoutePreview)
 	server.httpMux.HandleFunc("/api/routes/active", server.handleActiveRoutes)
 	server.httpMux.HandleFunc("/api/routes/missions", server.handleMissionRoutes)
+	server.httpMux.HandleFunc("/api/triage/status", server.handleTriageStatus)
 	server.httpMux.HandleFunc("/api/dashboard/summary", server.handleDashboardSummary)
 	server.httpMux.HandleFunc("/api/sync/inventory/state", server.handleInventoryDemoState)
 	server.httpMux.HandleFunc("/api/sync/inventory/reset", server.handleInventoryDemoReset)
@@ -299,6 +320,63 @@ func (s *Server) handleMissionRoutes(w http.ResponseWriter, r *http.Request) {
 		FailureStatus:      failureStatus,
 		RecomputeMs:        recomputeMs,
 		Missions:           missions,
+	})
+}
+
+func (s *Server) handleTriageStatus(w http.ResponseWriter, r *http.Request) {
+	baseGraph, err := scenario.LoadGraph(s.mapPath)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+
+	currentGraph, err := s.loadGraph(r)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+
+	mode := defaultString(r.URL.Query().Get("mode"), "simulated_breach")
+	failedEdgeID := strings.TrimSpace(r.URL.Query().Get("failed_edge"))
+	if mode == "simulated_breach" && failedEdgeID == "" {
+		failedEdgeID = "E3"
+	}
+	failureStatus := defaultString(r.URL.Query().Get("failure_status"), "washed_out")
+	if failedEdgeID != "" {
+		currentGraph = applyEdgeFailure(currentGraph, failedEdgeID, failureStatus)
+	}
+	slowdownPct, err := parseIntQuery(r, "slowdown_pct", 0)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	start := time.Now()
+	snapshot, err := triage.Evaluate(baseGraph, currentGraph, triage.EvaluateOptions{
+		FailedEdgeID: failedEdgeID,
+		Mode:         mode,
+		SlowdownPct:  slowdownPct,
+	})
+	if err != nil {
+		writeError(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, TriageStatusResponse{
+		Snapshot: snapshot,
+		Decision: PreemptionDecision{
+			Triggered:        snapshot.Decision.Triggered,
+			Action:           snapshot.Decision.Action,
+			SafeWaypoint:     snapshot.Decision.SafeWaypoint,
+			DropCargoIDs:     snapshot.Decision.DropCargoIDs,
+			KeepCargoIDs:     snapshot.Decision.KeepCargoIDs,
+			RerouteVehicle:   snapshot.Decision.RerouteVehicle,
+			CurrentETAMins:   snapshot.Decision.CurrentETAMins,
+			RerouteETAMins:   snapshot.Decision.RerouteETAMins,
+			DecisionReason:   snapshot.Decision.DecisionReason,
+			AuditTrailAnchor: snapshot.Decision.AuditTrailAnchor,
+		},
+		RecomputeMs: time.Since(start).Milliseconds(),
 	})
 }
 
