@@ -2,6 +2,24 @@
 
 Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delta` challenge.
 
+## Resource Disclosure
+
+Per the HackFusion rules, this project uses open-source frameworks, libraries, and AI-assisted pair-programming support during development.
+
+### Open-Source Stack
+- Expo / React Native / Expo Router
+- React + Vite + Leaflet / React Leaflet
+- Go standard library plus gRPC / Protobuf tooling
+- `rn-wifi-p2p`
+- `react-native-ble-plx`
+- `@noble/curves`, `@noble/hashes`
+- `@stablelib/aes`, `@stablelib/gcm`
+- Buf / `protoc` code generation tooling
+
+### AI Assistance Disclosure
+- AI pair-programming assistance was used during development and refactoring, including OpenAI Codex / ChatGPT-style assistance.
+- All generated code and architectural decisions were reviewed and adapted inside this repository.
+
 ## Current Status
 - Expo app shell is in place for command, deliveries, and network views.
 - Go scenario loader and routing preview are working.
@@ -168,6 +186,9 @@ Judge proof docs:
 - `DEMO.md`
 - `docs/qa/M2-QA.md`
 - `docs/compliance/M2-transport-proof.md`
+- `docs/submission-checklist.md`
+- `docs/pitch-deck-outline.md`
+- `docs/architecture-diagram.md`
 
 ### Chaos Simulator
 ```bash
