@@ -19,6 +19,18 @@ Working project name: `Huntrix Delta`
 4. `ml`
    Python training pipeline and exported risk artifacts used by the routing engine.
 
+## Scope Correction
+The restored problem-statement page materially tightens `Module 1` and `Module 2`.
+
+What this means:
+- `M1` is not just generic offline auth. It specifically requires offline `TOTP/HOTP`, per-device asymmetric key provisioning, exact named RBAC roles, and tamper-evident auth logs using hash chaining.
+- `M2` is not just eventual convergence in principle. It explicitly requires CRDT-backed inventory data, vector clocks on every mutation, UI conflict resolution, and actual Bluetooth or Wi-Fi Direct delta sync for full credit on `M2.4`.
+
+Architecture impact:
+- the overall architecture does **not** need a full rewrite
+- the priority order **does** change
+- simulated sync is acceptable only as an intermediate development step, not as the final answer for `M2.4`
+
 ## System Flowchart
 ```mermaid
 flowchart TD
@@ -62,6 +74,9 @@ This choice directly supports:
 ### 1. Mobile Node App
 Responsibilities:
 - local identity and role state
+- offline OTP generation and expiry handling
+- device keypair creation and secure local key storage
+- hash-chained auth audit logs
 - local queue of deliveries, receipts, and sync ops
 - QR handoff flows
 - operator dashboard and field task execution
@@ -70,6 +85,7 @@ Responsibilities:
 Storage direction:
 - local durable store for entities and operation log
 - vector-clock metadata per syncable record
+- secure storage for private keys and OTP seed material
 
 ### 2. Mesh and Sync Layer
 Responsibilities:
@@ -77,10 +93,12 @@ Responsibilities:
 - preserve pending messages while peers are offline
 - deduplicate by envelope id and payload hash
 - merge entity updates using vector clocks and CRDT merge rules
+- eventually perform actual Bluetooth or Wi-Fi Direct delta sync between devices
 
 Demo reality:
-- first pass may simulate peer relay semantics over local networking before attempting true Bluetooth transport
-- transport semantics still follow the rubric: relay, resume, TTL, dedupe, and unreadable ciphertext at relay nodes
+- early development may simulate peer relay semantics over local networking
+- final judged path for `M2.4` should use actual device-to-device sync, not only a simulation
+- transport semantics must still satisfy relay, resume, TTL, dedupe, and unreadable ciphertext at relay nodes
 
 ### 3. Routing Engine
 Responsibilities:
@@ -120,8 +138,8 @@ Responsibilities:
 ## Module Coverage Plan
 | Module | Plan |
 |------|------|
-| `M1` Auth | Minimal offline identity, OTP-like local challenge flow, RBAC for demo roles |
-| `M2` CRDT Sync | High priority, core differentiator |
+| `M1` Auth | High priority: offline TOTP/HOTP, device keys, named RBAC roles, tamper-evident auth logs |
+| `M2` CRDT Sync | High priority: CRDT inventory model, vector clocks, conflict UI, actual device sync target |
 | `M3` Mesh | High priority, initially simulated if needed |
 | `M4` Routing | High priority, central demo surface |
 | `M5` PoD | High priority, cryptographic demo moment |
@@ -161,34 +179,36 @@ flowchart LR
 ### M1 - Authentication and Identity
 ```mermaid
 flowchart TD
-    A[User Opens App] --> B[Select Role / Device Identity]
-    B --> C[Local Challenge or OTP-like Verification]
-    C --> D{Valid?}
-    D -- No --> E[Reject Login Attempt]
-    D -- Yes --> F[Unlock Private Key Material]
-    F --> G[Load RBAC Permissions]
-    G --> H[Append Audit Event Locally]
-    H --> I[Enter Offline App Session]
+    A[User Opens App] --> B[Generate or Load OTP Seed]
+    B --> C[Create Offline TOTP or HOTP]
+    C --> D[Show Expiry / Regeneration Window]
+    D --> E[Validate Local Login Attempt]
+    E --> F{Valid?}
+    F -- No --> G[Append Auth Failure to Hash-Chained Log]
+    F -- Yes --> H[Provision or Unlock Device Keypair]
+    H --> I[Load Exact RBAC Role]
+    I --> J[Append Login Event to Hash-Chained Log]
+    J --> K[Enter Offline Session]
 ```
 
 ### M2 and M3 - CRDT Sync and Mesh Relay
 ```mermaid
 flowchart TD
-    A[Local Entity Change] --> B[Attach Vector Clock]
-    B --> C[Create Sync Operation]
-    C --> D[Encrypt Into Relay Envelope]
-    D --> E[Assign TTL + Dedupe Key]
-    E --> F[Store in Outbox]
-    F --> G[Nearby Peer Discovered]
-    G --> H[Forward Envelope]
-    H --> I{Peer Online?}
-    I -- No --> J[Persist for Later Retry]
-    I -- Yes --> K[Deliver to Replica]
-    K --> L[Verify Envelope]
-    L --> M[Merge CRDT State]
-    M --> N{Conflict?}
-    N -- Yes --> O[Mark Conflict State in UI]
-    N -- No --> P[Mark Verified / Synced]
+    A[Inventory Mutation] --> B[Apply CRDT Update]
+    B --> C[Attach Vector Clock]
+    C --> D[Create Delta Sync Operation]
+    D --> E[Encrypt Into Relay Envelope]
+    E --> F[Assign TTL + Dedupe Key]
+    F --> G[Store in Outbox]
+    G --> H[Bluetooth or Wi-Fi Direct Peer Found]
+    H --> I[Transmit Delta Since Last Clock]
+    I --> J{Peer Received?}
+    J -- No --> K[Persist for Retry]
+    J -- Yes --> L[Merge CRDT State]
+    L --> M{Field Conflict?}
+    M -- Yes --> N[Surface Both Values in UI]
+    N --> O[Log Resolution Decision]
+    M -- No --> P[Mark Verified / Synced]
 ```
 
 ### M4 - Multi-Modal Routing Engine
@@ -286,14 +306,15 @@ Map decision for first pass:
 - use Expo web for the richer route dashboard if Leaflet integration is faster there
 - keep native mobile focused on field workflows and status views
 - avoid a second frontend app unless Expo web becomes a blocker
+- but for `M2.4`, the mobile app still needs a real on-device sync transport path
 
 ## Immediate Implementation Order
 1. lock scenario data
 2. define protobuf contracts
-3. implement Go graph and sync domain models
-4. scaffold Expo app around the judged flows
-5. add risk model and PoD crypto flows
-6. harden the demo path
+3. implement auth primitives: OTP, device keys, audit log chain
+4. implement CRDT inventory model plus vector clocks
+5. implement real mobile device sync transport
+6. wire routing, PoD, triage, and harden the demo path
 
 ## Demo Story
 The strongest live demo sequence is:

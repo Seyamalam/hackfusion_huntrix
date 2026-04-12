@@ -7,6 +7,7 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - Go scenario loader and routing preview are working.
 - Protobuf contracts exist for sync, routing, and delivery flows.
 - Chaos simulator is integrated under `services/chaos/`.
+- The restored problem statement makes `M1` and `M2` stricter than our earlier shorthand summary, especially real device-to-device sync for `M2.4`.
 
 ## Todo/Task
 - [x] Bootstrap Expo, Go, and protobuf project structure
@@ -19,8 +20,24 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [x] Replace the command and network views with live backend fetches
 - [x] Generate Go and TypeScript code from `.proto` files
 - [x] Generate Go gRPC service stubs and add a first gRPC server
+- [x] Add a real gRPC `ComputeRoute` smoke path and client
+- [ ] Implement offline TOTP/HOTP auth flow with expiry/regeneration demo
+- [ ] Implement per-device key provisioning plus tamper-evident auth logs
+- [ ] Enforce the exact RBAC roles from the restored statement
+- [ ] Implement CRDT inventory entries with vector clocks and conflict UI
+- [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [ ] Add `DEMO.md`, model card, and submission assets
+
+## Scope Correction
+The restored Module 1 and Module 2 page changes the plan in one important way:
+- simulated sync is no longer enough for full credit on `M2.4`
+- auth is no longer generic offline login; it needs offline `TOTP/HOTP`, per-device keys, exact RBAC roles, and tamper-evident auth logs
+
+The repo architecture still stands, but the implementation priority changes:
+1. real on-device sync transport moves up
+2. auth and audit logging move up
+3. “simulated later” assumptions for `M2` are no longer valid if we want full marks
 
 ## Repo Layout
 ```text
@@ -60,6 +77,8 @@ go run ./services/core/cmd/api
 go run ./services/core/cmd/api -chaos-url http://127.0.0.1:5000
 go run ./services/core/cmd/grpcapi
 go run ./services/core/cmd/grpcapi -chaos-url http://127.0.0.1:5000
+go run ./services/core/cmd/grpcclient
+go run ./services/core/cmd/grpcclient -vehicle speedboat
 ```
 
 ### Chaos Simulator
