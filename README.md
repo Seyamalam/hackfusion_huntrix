@@ -31,6 +31,7 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [x] Add a Leaflet route dashboard for M4.4 with offline OSM tile caching
 - [x] Upgrade the Go route engine with weighted multi-modal edges and recomputation endpoints
 - [x] Add multimodal handoff mission planning and the first in-app route graph
+- [x] Add offline proof-of-delivery QR signing, countersigning, replay protection, and receipt-chain sync
 - [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [ ] Add `DEMO.md`, model card, and submission assets

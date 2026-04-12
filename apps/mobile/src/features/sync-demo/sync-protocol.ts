@@ -1,3 +1,5 @@
+import type { PodReceipt } from '@/src/features/pod/pod-types';
+
 export type ClockRelation = 'after' | 'before' | 'concurrent' | 'equal';
 
 export type InventoryConflict = {
@@ -32,6 +34,7 @@ export type SyncDeltaBundle = {
   bundle_id: string;
   created_at: string;
   kind: 'sync-delta';
+  pod_receipts: PodReceipt[];
   records: InventoryItem[];
   source_replica: string;
   target_replica: string;
@@ -42,6 +45,7 @@ export type SyncSessionSummary = {
   conflict_count: number;
   merged_count: number;
   record_count: number;
+  receipt_count: number;
 };
 
 export type SyncPayload = SyncHandshake | SyncDeltaBundle;
@@ -73,12 +77,14 @@ export function buildDeltaBundle(
   replicaId: string,
   targetReplica: string,
   records: InventoryItem[],
+  podReceipts: PodReceipt[] = [],
 ): SyncDeltaBundle {
   return {
     base_clock: records[0]?.vector_clock ? { ...records[0].vector_clock } : {},
     bundle_id: `bundle-${Date.now()}`,
     created_at: new Date().toISOString(),
     kind: 'sync-delta',
+    pod_receipts: podReceipts,
     records,
     source_replica: replicaId,
     target_replica: targetReplica,
@@ -114,16 +120,23 @@ export function mutateLocalInventory(
   } satisfies InventoryItem;
 }
 
-export function applyDeltaBundle(localItem: InventoryItem, bundle: SyncDeltaBundle) {
+export function applyDeltaBundle(
+  localItem: InventoryItem,
+  bundle: SyncDeltaBundle,
+  localReceipts: PodReceipt[] = [],
+) {
   const remoteItem = bundle.records[0];
+  const mergedReceipts = mergePodReceipts(localReceipts, bundle.pod_receipts ?? []);
   if (!remoteItem) {
     return {
       item: localItem,
+      receipts: mergedReceipts,
       summary: {
         bytes_estimate: estimateBundleBytes(bundle),
         conflict_count: 0,
         merged_count: 0,
         record_count: 0,
+        receipt_count: bundle.pod_receipts?.length ?? 0,
       },
     };
   }
@@ -132,11 +145,13 @@ export function applyDeltaBundle(localItem: InventoryItem, bundle: SyncDeltaBund
   if (relation === 'before') {
     return {
       item: cloneItem({ ...remoteItem, conflicts: [] }),
+      receipts: mergedReceipts,
       summary: {
         bytes_estimate: estimateBundleBytes(bundle),
         conflict_count: 0,
         merged_count: 1,
         record_count: bundle.records.length,
+        receipt_count: bundle.pod_receipts?.length ?? 0,
       },
     };
   }
@@ -144,11 +159,13 @@ export function applyDeltaBundle(localItem: InventoryItem, bundle: SyncDeltaBund
   if (relation === 'equal' || relation === 'after') {
     return {
       item: cloneItem({ ...localItem, conflicts: [] }),
+      receipts: mergedReceipts,
       summary: {
         bytes_estimate: estimateBundleBytes(bundle),
         conflict_count: 0,
         merged_count: 1,
         record_count: bundle.records.length,
+        receipt_count: bundle.pod_receipts?.length ?? 0,
       },
     };
   }
@@ -182,11 +199,13 @@ export function applyDeltaBundle(localItem: InventoryItem, bundle: SyncDeltaBund
 
   return {
     item: merged,
+    receipts: mergedReceipts,
     summary: {
       bytes_estimate: estimateBundleBytes(bundle),
       conflict_count: conflicts.length > 0 ? 1 : 0,
       merged_count: 1,
       record_count: bundle.records.length,
+      receipt_count: bundle.pod_receipts?.length ?? 0,
     },
   };
 }
@@ -238,4 +257,13 @@ function cloneItem(item: InventoryItem): InventoryItem {
     conflicts: [...item.conflicts],
     vector_clock: { ...item.vector_clock },
   };
+}
+
+function mergePodReceipts(current: PodReceipt[], incoming: PodReceipt[]) {
+  const byID = new Map(current.map((receipt) => [receipt.receipt_id, receipt]));
+  for (const receipt of incoming) {
+    byID.set(receipt.receipt_id, receipt);
+  }
+
+  return [...byID.values()].sort((left, right) => left.verified_at.localeCompare(right.verified_at));
 }

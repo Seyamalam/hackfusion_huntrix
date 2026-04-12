@@ -14,6 +14,7 @@ import {
   type SyncHandshake,
   type SyncSessionSummary,
 } from '@/src/features/sync-demo/sync-protocol';
+import type { PodReceipt } from '@/src/features/pod/pod-types';
 import {
   readLocalInventory,
   readPeerClocks,
@@ -21,6 +22,7 @@ import {
   writeLocalInventory,
   writePeerClocks,
 } from '@/src/features/wifi-direct/wifi-direct-storage';
+import { readPodReceipts, writePodReceipts } from '@/src/features/pod/pod-storage';
 import { canPerform } from '@/src/features/auth/auth-rbac';
 import { readRole } from '@/src/features/auth/auth-storage';
 
@@ -33,6 +35,7 @@ type WifiDirectState = {
   isScanning: boolean;
   lastHandshakeReplica: string | null;
   lastPeerAddress: string | null;
+  deliveryReceipts: PodReceipt[];
   localInventory: InventoryItem;
   messages: string[];
   peers: Device[];
@@ -57,6 +60,7 @@ const INITIAL_STATE: WifiDirectState = {
   isScanning: false,
   lastHandshakeReplica: null,
   lastPeerAddress: null,
+  deliveryReceipts: [],
   localInventory: createSeedInventoryItem(),
   messages: [],
   peers: [],
@@ -93,13 +97,14 @@ export function useWifiDirect() {
     }
 
     let active = true;
-    Promise.all([readReplicaId(), readLocalInventory(), readPeerClocks()]).then(
-      ([replicaId, localInventory, peerClocks]) => {
+    Promise.all([readReplicaId(), readLocalInventory(), readPeerClocks(), readPodReceipts()]).then(
+      ([replicaId, localInventory, peerClocks, deliveryReceipts]) => {
         if (!active) {
           return;
         }
         setState((current) => ({
           ...current,
+          deliveryReceipts,
           localInventory,
           peerClocks,
           replicaId,
@@ -279,7 +284,7 @@ export function useWifiDirect() {
     const knownClock = state.peerClocks[deviceAddress]?.knownClock ?? {};
     const changedRecords = filterChangedRecords([state.localInventory], knownClock);
     const payload = JSON.stringify(
-      buildDeltaBundle(state.replicaId, targetReplica, changedRecords),
+      buildDeltaBundle(state.replicaId, targetReplica, changedRecords, state.deliveryReceipts),
     );
 
     try {
@@ -295,6 +300,7 @@ export function useWifiDirect() {
           conflict_count: 0,
           merged_count: 0,
           record_count: changedRecords.length,
+          receipt_count: state.deliveryReceipts.length,
         },
       }));
     } catch (error) {
@@ -368,7 +374,7 @@ export function useWifiDirect() {
     if (kind === 'sync-delta') {
       const bundle = payload as SyncDeltaBundle;
       setState((current) => {
-        const result = applyDeltaBundle(current.localInventory, bundle);
+        const result = applyDeltaBundle(current.localInventory, bundle, current.deliveryReceipts);
         const nextPeerClocks = {
           ...current.peerClocks,
           [fromAddress]: {
@@ -379,8 +385,10 @@ export function useWifiDirect() {
         };
         void writePeerClocks(nextPeerClocks);
         persistLocalInventory(result.item);
+        void writePodReceipts(result.receipts);
         return {
           ...current,
+          deliveryReceipts: result.receipts,
           lastPeerAddress: fromAddress,
           localInventory: result.item,
           messages: [

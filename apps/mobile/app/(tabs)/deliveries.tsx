@@ -16,6 +16,7 @@ import {
   runInventoryScenario,
   type InventoryDemoState,
 } from '@/src/features/sync-demo/sync-demo-api';
+import { PodDemoPanel } from '@/src/features/pod/pod-demo-panel';
 import { palette } from '@/src/theme/palette';
 
 export default function DeliveriesScreen() {
@@ -193,6 +194,8 @@ export default function DeliveriesScreen() {
           </AnimatedPanel>
         </>
       ) : null}
+
+      <PodDemoPanel />
     </ScrollView>
   );
 }

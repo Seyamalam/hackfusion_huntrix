@@ -186,6 +186,7 @@ export default function NetworkScreen() {
                 .join(' | ')}
             />
             <InfoRow label="Last handshake" value={wifiDirect.lastHandshakeReplica ?? 'none'} />
+            <InfoRow label="Receipt ledger" value={`${wifiDirect.deliveryReceipts.length} receipt(s)`} />
             <InfoRow
               label="Known peer clock"
               value={
@@ -211,6 +212,7 @@ export default function NetworkScreen() {
               <InfoRow label="Records in bundle" value={String(wifiDirect.sessionSummary.record_count)} />
               <InfoRow label="Merged records" value={String(wifiDirect.sessionSummary.merged_count)} />
               <InfoRow label="Conflicts" value={String(wifiDirect.sessionSummary.conflict_count)} />
+              <InfoRow label="Receipts synced" value={String(wifiDirect.sessionSummary.receipt_count)} />
               <InfoRow label="Payload bytes" value={String(wifiDirect.sessionSummary.bytes_estimate)} />
             </View>
           </SectionCard>

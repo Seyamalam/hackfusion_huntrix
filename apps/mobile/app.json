@@ -40,6 +40,12 @@
       "expo-router",
       "expo-secure-store",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Huntrix Delta to scan proof-of-delivery QR codes."
+        }
+      ],
+      [
         "expo-dev-client",
         {
           "launchMode": "most-recent"
