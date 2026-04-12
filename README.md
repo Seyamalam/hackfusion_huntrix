@@ -8,7 +8,7 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - Protobuf contracts exist for sync, routing, and delivery flows.
 - Chaos simulator is integrated under `services/chaos/`.
 
-## Simple Todo
+## Todo/Task
 - [x] Bootstrap Expo, Go, and protobuf project structure
 - [x] Add first-pass architecture notes and diagrams
 - [x] Add shared Sylhet scenario data
@@ -55,13 +55,3 @@ python -m pip install -r services/chaos/requirements.txt
 python services/chaos/chaos_server.py
 ```
 
-### Git
-```bash
-git status
-git add .
-git commit -m "your message"
-git push origin main
-```
-
-## Commit Rule
-On each commit, update this README's `Simple Todo` section so the repo reflects the real project state.
