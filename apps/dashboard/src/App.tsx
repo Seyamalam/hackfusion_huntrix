@@ -113,6 +113,10 @@ function App() {
   const blockedEdges = snapshot.graph.edges.filter((edge) => edge.is_flooded);
   const openEdges = snapshot.graph.edges.filter((edge) => !edge.is_flooded);
   const primaryMission = snapshot.missions.missions[0];
+  const predictive = snapshot.predictive;
+  const predictiveByEdge = new Map(
+    predictive.status.predictions.map((prediction) => [prediction.edge_id, prediction]),
+  );
   const triage = snapshot.triage;
 
   return (
@@ -148,6 +152,7 @@ function App() {
               <LegendSwatch label="Waterway" color={edgeStroke.waterway} />
               <LegendSwatch label="Airway" color={edgeStroke.airway} />
               <LegendSwatch label="Failed Edge" color="#ff5b6d" />
+              <LegendSwatch label="Predicted Risk" color="#d22f5a" />
             </div>
           </div>
           <div className="map-frame">
@@ -160,11 +165,34 @@ function App() {
                     key={edge.id}
                     positions={edgeToPolyline(snapshot.graph, edge)}
                     pathOptions={{
-                      color: edgeStroke[edge.type],
+                      color: riskColor(predictiveByEdge.get(edge.id)?.probability ?? 0, edge.type),
                       weight: 4,
-                      opacity: 0.5,
+                      opacity: 0.7,
                     }}
-                  />
+                  >
+                    {predictiveByEdge.has(edge.id) ? (
+                      <Popup>
+                        <strong>{edge.id}</strong>
+                        <br />
+                        Risk: {Math.round((predictiveByEdge.get(edge.id)?.probability ?? 0) * 100)}%
+                        <br />
+                        Cumulative rain: {predictiveByEdge.get(edge.id)?.feature_snapshot.cumulative_rainfall_mm} mm
+                        <br />
+                        Rate change: {predictiveByEdge.get(edge.id)?.feature_snapshot.rainfall_rate_change}
+                        <br />
+                        Elevation: {predictiveByEdge.get(edge.id)?.feature_snapshot.elevation_m} m
+                        <br />
+                        Soil proxy: {predictiveByEdge.get(edge.id)?.feature_snapshot.soil_saturation_proxy}
+                        <br />
+                        Predicted at: {predictiveByEdge.get(edge.id)?.prediction_timestamp}
+                      </Popup>
+                    ) : null}
+                    {predictiveByEdge.has(edge.id) ? (
+                      <Tooltip sticky>
+                        {edge.id} • {Math.round((predictiveByEdge.get(edge.id)?.probability ?? 0) * 100)}%
+                      </Tooltip>
+                    ) : null}
+                  </Polyline>
                 ))}
                 {blockedEdges.map((edge) => (
                   <Polyline
@@ -262,8 +290,47 @@ function App() {
               <MetricCard label="Routes" value={snapshot.summary.route_previews.length} tone="good" />
               <MetricCard label="Handoffs" value={primaryMission?.handoffs.length ?? 0} tone="neutral" />
               <MetricCard label="Slowdown" value={triage.snapshot.slowdown_pct} tone="danger" />
+              <MetricCard label="High Risk" value={predictive.status.predictions.filter((prediction) => prediction.high_risk).length} tone="danger" />
             </div>
             {error ? <p className="warning-banner">Live refresh error: {error}</p> : null}
+          </article>
+
+          <article className="panel routes-panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Module 7</p>
+                <h2>Predictive route decay</h2>
+              </div>
+            </div>
+            <div className="route-list">
+              <div className="route-card">
+                <div className="route-topline">
+                  <span className="vehicle-pill" data-vehicle="drone">
+                    1 Hz rainfall feed
+                  </span>
+                  <span>F1 {predictive.status.metrics.f1}</span>
+                </div>
+                <strong>Model quality</strong>
+                <p>
+                  Precision {predictive.status.metrics.precision} / Recall {predictive.status.metrics.recall} / Threshold {predictive.status.model.threshold}
+                </p>
+              </div>
+              {predictive.status.recommendations.map((recommendation) => (
+                <div className="route-card" key={`${recommendation.vehicle}-${recommendation.source}-${recommendation.target}`}>
+                  <div className="route-topline">
+                    <span className="vehicle-pill" data-vehicle={recommendation.vehicle}>
+                      {recommendation.vehicle}
+                    </span>
+                    <span>{recommendation.proactive_eta_mins} min</span>
+                  </div>
+                  <strong>{recommendation.source} {"->"} {recommendation.target}</strong>
+                  <p>{recommendation.message}</p>
+                  <p>
+                    Baseline {recommendation.baseline_eta_mins} min | avoided {recommendation.avoided_edges.join(", ") || "none"}
+                  </p>
+                </div>
+              ))}
+            </div>
           </article>
 
           <article className="panel routes-panel">
@@ -533,6 +600,19 @@ function formatTimestamp(value: string) {
     month: "short",
     day: "numeric",
   }).format(new Date(value));
+}
+
+function riskColor(probability: number, fallback: LinkType) {
+  if (probability >= 0.85) {
+    return "#d22f5a";
+  }
+  if (probability >= 0.7) {
+    return "#ea6f3b";
+  }
+  if (probability >= 0.45) {
+    return "#e7b341";
+  }
+  return edgeStroke[fallback];
 }
 
 export default App;

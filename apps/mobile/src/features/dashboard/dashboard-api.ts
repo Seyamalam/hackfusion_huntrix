@@ -150,6 +150,51 @@ export type TriageStatusResponse = {
   recompute_ms: number;
 };
 
+export type PredictiveEdgePrediction = {
+  edge_id: string;
+  probability: number;
+  high_risk: boolean;
+  prediction_timestamp: string;
+  penalized_weight_mins: number;
+  feature_snapshot: {
+    edge_id: string;
+    edge_type: string;
+    cumulative_rainfall_mm: number;
+    rainfall_rate_change: number;
+    elevation_m: number;
+    soil_saturation_proxy: number;
+    last_sensor_timestamp_utc: string;
+    contributing_features: Record<string, number>;
+  };
+};
+
+export type PredictiveRecommendation = {
+  vehicle: string;
+  source: string;
+  target: string;
+  baseline_eta_mins: number;
+  proactive_eta_mins: number;
+  changed: boolean;
+  avoided_edges: string[];
+  message: string;
+};
+
+export type PredictiveStatusResponse = {
+  status: {
+    model: {
+      threshold: number;
+    };
+    metrics: {
+      precision: number;
+      recall: number;
+      f1: number;
+    };
+    predictions: PredictiveEdgePrediction[];
+    recommendations: PredictiveRecommendation[];
+  };
+  recompute_ms: number;
+};
+
 export type NetworkStatus = {
   metadata: {
     region: string;
@@ -295,6 +340,78 @@ export const triageFallback: TriageStatusResponse = {
   },
 };
 
+export const predictiveFallback: PredictiveStatusResponse = {
+  recompute_ms: 31,
+  status: {
+    model: {
+      threshold: 0.7,
+    },
+    metrics: {
+      precision: 1,
+      recall: 0.8333,
+      f1: 0.9091,
+    },
+    predictions: [
+      {
+        edge_id: 'E3',
+        probability: 0.91,
+        high_risk: true,
+        prediction_timestamp: '2026-04-12T08:00:00Z',
+        penalized_weight_mins: 130,
+        feature_snapshot: {
+          edge_id: 'E3',
+          edge_type: 'road',
+          cumulative_rainfall_mm: 1.18,
+          rainfall_rate_change: 23.4,
+          elevation_m: 12,
+          soil_saturation_proxy: 0.87,
+          last_sensor_timestamp_utc: '2026-04-12T08:00:00Z',
+          contributing_features: {
+            cumulative_rainfall_mm: 0.51,
+            rainfall_rate_change: 2.11,
+            elevation_m: -0.6,
+            soil_saturation_proxy: 2.35,
+          },
+        },
+      },
+      {
+        edge_id: 'E6',
+        probability: 0.76,
+        high_risk: true,
+        prediction_timestamp: '2026-04-12T08:00:00Z',
+        penalized_weight_mins: 235,
+        feature_snapshot: {
+          edge_id: 'E6',
+          edge_type: 'waterway',
+          cumulative_rainfall_mm: 1.04,
+          rainfall_rate_change: 19.8,
+          elevation_m: 7,
+          soil_saturation_proxy: 0.92,
+          last_sensor_timestamp_utc: '2026-04-12T08:00:00Z',
+          contributing_features: {
+            cumulative_rainfall_mm: 0.37,
+            rainfall_rate_change: 1.81,
+            elevation_m: -1.13,
+            soil_saturation_proxy: 2.58,
+          },
+        },
+      },
+    ],
+    recommendations: [
+      {
+        vehicle: 'truck',
+        source: 'N1',
+        target: 'N3',
+        baseline_eta_mins: 90,
+        proactive_eta_mins: 110,
+        changed: true,
+        avoided_edges: ['E3'],
+        message: 'Advance reroute recommended before the edge becomes impassable.',
+      },
+    ],
+  },
+};
+
 export async function fetchDashboardSummary(signal?: AbortSignal): Promise<DashboardSummary> {
   const response = await fetch(`${apiBaseUrl}/api/dashboard/summary`, { signal });
   if (!response.ok) {
@@ -329,4 +446,13 @@ export async function fetchTriageStatus(signal?: AbortSignal): Promise<TriageSta
   }
 
   return (await response.json()) as TriageStatusResponse;
+}
+
+export async function fetchPredictiveStatus(signal?: AbortSignal): Promise<PredictiveStatusResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/predictive/status`, { signal });
+  if (!response.ok) {
+    throw new Error(`predictive request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as PredictiveStatusResponse;
 }

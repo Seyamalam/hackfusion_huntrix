@@ -151,6 +151,51 @@ export type TriageStatusResponse = {
   recompute_ms: number;
 };
 
+export type EdgePrediction = {
+  edge_id: string;
+  probability: number;
+  high_risk: boolean;
+  prediction_timestamp: string;
+  penalized_weight_mins: number;
+  feature_snapshot: {
+    edge_id: string;
+    edge_type: LinkType;
+    cumulative_rainfall_mm: number;
+    rainfall_rate_change: number;
+    elevation_m: number;
+    soil_saturation_proxy: number;
+    last_sensor_timestamp_utc: string;
+    contributing_features: Record<string, number>;
+  };
+};
+
+export type PredictiveRecommendation = {
+  vehicle: string;
+  source: string;
+  target: string;
+  baseline_eta_mins: number;
+  proactive_eta_mins: number;
+  changed: boolean;
+  avoided_edges: string[];
+  message: string;
+};
+
+export type PredictiveStatusResponse = {
+  status: {
+    model: {
+      threshold: number;
+    };
+    metrics: {
+      precision: number;
+      recall: number;
+      f1: number;
+    };
+    predictions: EdgePrediction[];
+    recommendations: PredictiveRecommendation[];
+  };
+  recompute_ms: number;
+};
+
 export type DashboardSummary = {
   scenario: string;
   node_count: number;
@@ -166,5 +211,6 @@ export type DashboardSnapshot = {
   summary: DashboardSummary;
   missions: MissionPlansResponse;
   triage: TriageStatusResponse;
+  predictive: PredictiveStatusResponse;
   fetchedAt: string;
 };

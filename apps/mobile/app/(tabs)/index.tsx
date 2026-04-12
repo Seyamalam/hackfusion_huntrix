@@ -12,24 +12,29 @@ import {
   fetchDashboardSummary,
   fetchMissionPlans,
   fetchNetworkStatus,
+  fetchPredictiveStatus,
   fetchTriageStatus,
   missionFallback,
   networkFallback,
+  predictiveFallback,
   triageFallback,
   type DashboardSummary,
   type MissionPlansResponse,
   type NetworkStatus,
+  type PredictiveStatusResponse,
   type TriageStatusResponse,
 } from '@/src/features/dashboard/dashboard-api';
 import { syncSignals } from '@/src/features/dashboard/dashboard-data';
 import { RouteGraphCard } from '@/src/features/dashboard/route-graph-card';
 import { TriagePanel } from '@/src/features/dashboard/triage-panel';
+import { PredictivePanel } from '@/src/features/predictive/predictive-panel';
 import { palette } from '@/src/theme/palette';
 
 export default function CommandScreen() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [network, setNetwork] = useState<NetworkStatus | null>(null);
   const [missions, setMissions] = useState<MissionPlansResponse | null>(null);
+  const [predictive, setPredictive] = useState<PredictiveStatusResponse | null>(null);
   const [triage, setTriage] = useState<TriageStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,12 +45,14 @@ export default function CommandScreen() {
       fetchDashboardSummary(controller.signal),
       fetchNetworkStatus(controller.signal),
       fetchMissionPlans(controller.signal),
+      fetchPredictiveStatus(controller.signal),
       fetchTriageStatus(controller.signal),
     ])
-      .then(([nextSummary, nextNetwork, nextMissions, nextTriage]) => {
+      .then(([nextSummary, nextNetwork, nextMissions, nextPredictive, nextTriage]) => {
         setSummary(nextSummary);
         setNetwork(nextNetwork);
         setMissions(nextMissions);
+        setPredictive(nextPredictive);
         setTriage(nextTriage);
         setError(null);
       })
@@ -62,6 +69,7 @@ export default function CommandScreen() {
   const liveSummary = summary ?? dashboardFallback;
   const liveNetwork = network ?? networkFallback;
   const liveMissions = missions ?? missionFallback;
+  const livePredictive = predictive ?? predictiveFallback;
   const liveTriage = triage ?? triageFallback;
   const primaryMission = liveMissions.missions[0] ?? missionFallback.missions[0];
   const metrics = [
@@ -163,10 +171,14 @@ export default function CommandScreen() {
       </AnimatedPanel>
 
       <AnimatedPanel index={4}>
-        <TriagePanel triage={liveTriage} />
+        <PredictivePanel predictive={livePredictive} />
       </AnimatedPanel>
 
       <AnimatedPanel index={5}>
+        <TriagePanel triage={liveTriage} />
+      </AnimatedPanel>
+
+      <AnimatedPanel index={6}>
         <SectionCard
           eyebrow="Priority Pressure"
           title="Narrate the decision, not the math"

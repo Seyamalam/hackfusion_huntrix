@@ -1,0 +1,12 @@
+{
+  "E1": { "elevation_m": 16, "soil_saturation_base": 0.48 },
+  "E2": { "elevation_m": 9, "soil_saturation_base": 0.71 },
+  "E3": { "elevation_m": 12, "soil_saturation_base": 0.58 },
+  "E4": { "elevation_m": 18, "soil_saturation_base": 0.46 },
+  "E5": { "elevation_m": 11, "soil_saturation_base": 0.63 },
+  "E6": { "elevation_m": 7, "soil_saturation_base": 0.76 },
+  "E7": { "elevation_m": 8, "soil_saturation_base": 0.72 },
+  "E8": { "elevation_m": 29, "soil_saturation_base": 0.34 },
+  "E9": { "elevation_m": 31, "soil_saturation_base": 0.29 },
+  "E10": { "elevation_m": 26, "soil_saturation_base": 0.41 }
+}

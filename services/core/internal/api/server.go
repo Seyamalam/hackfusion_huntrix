@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/chaos"
+	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/predictive"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/routing"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/scenario"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/triage"
@@ -85,6 +86,11 @@ type TriageStatusResponse struct {
 	RecomputeMs int64              `json:"recompute_ms"`
 }
 
+type PredictiveStatusResponse struct {
+	Status      predictive.Status `json:"status"`
+	RecomputeMs int64             `json:"recompute_ms"`
+}
+
 type PreemptionDecision struct {
 	Triggered        bool     `json:"triggered"`
 	Action           string   `json:"action"`
@@ -111,6 +117,7 @@ func NewServer(mapPath, chaosURL string) *Server {
 	server.httpMux.HandleFunc("/api/route/preview", server.handleRoutePreview)
 	server.httpMux.HandleFunc("/api/routes/active", server.handleActiveRoutes)
 	server.httpMux.HandleFunc("/api/routes/missions", server.handleMissionRoutes)
+	server.httpMux.HandleFunc("/api/predictive/status", server.handlePredictiveStatus)
 	server.httpMux.HandleFunc("/api/triage/status", server.handleTriageStatus)
 	server.httpMux.HandleFunc("/api/dashboard/summary", server.handleDashboardSummary)
 	server.httpMux.HandleFunc("/api/sync/inventory/state", server.handleInventoryDemoState)
@@ -380,6 +387,26 @@ func (s *Server) handleTriageStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Server) handlePredictiveStatus(w http.ResponseWriter, r *http.Request) {
+	graph, err := s.loadGraph(r)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+
+	start := time.Now()
+	status, err := predictive.Evaluate(graph, s.repoRoot())
+	if err != nil {
+		writeError(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, PredictiveStatusResponse{
+		Status:      status,
+		RecomputeMs: time.Since(start).Milliseconds(),
+	})
+}
+
 func (s *Server) loadGraph(r *http.Request) (scenario.Graph, error) {
 	if s.chaosURL != "" {
 		return chaos.NewClient(s.chaosURL).FetchNetworkStatus(r.Context())
@@ -554,6 +581,10 @@ func applyEdgeFailure(graph scenario.Graph, edgeID, failureStatus string) scenar
 	}
 
 	return clone
+}
+
+func (s *Server) repoRoot() string {
+	return filepath.Clean(filepath.Join(filepath.Dir(s.mapPath), ".."))
 }
 
 func defaultString(value, fallback string) string {

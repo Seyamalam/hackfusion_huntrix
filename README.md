@@ -33,6 +33,7 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [x] Add multimodal handoff mission planning and the first in-app route graph
 - [x] Add offline proof-of-delivery QR signing, countersigning, replay protection, and receipt-chain sync
 - [x] Add autonomous triage prediction and preemption across the route dashboard and app
+- [x] Add predictive route decay with trained ML artifacts, penalized rerouting, and risk overlays
 - [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [ ] Add `DEMO.md`, model card, and submission assets
@@ -120,6 +121,13 @@ curl "http://127.0.0.1:8080/api/routes/active"
 curl "http://127.0.0.1:8080/api/routes/active?failed_edge=E2&failure_status=washed_out"
 curl "http://127.0.0.1:8080/api/routes/missions"
 curl "http://127.0.0.1:8080/api/triage/status"
+curl "http://127.0.0.1:8080/api/predictive/status"
+```
+
+### ML Training
+```bash
+python ml/training/generate_route_decay_dataset.py
+python ml/training/train_route_decay_model.py
 ```
 
 ### M2 Demo Endpoints
