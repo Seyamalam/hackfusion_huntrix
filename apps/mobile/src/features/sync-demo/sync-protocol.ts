@@ -41,6 +41,7 @@ export type SyncSessionSummary = {
   bytes_estimate: number;
   conflict_count: number;
   merged_count: number;
+  record_count: number;
 };
 
 export type SyncPayload = SyncHandshake | SyncDeltaBundle;
@@ -68,16 +69,49 @@ export function buildHandshake(replicaId: string, vectorClock: Record<string, nu
   };
 }
 
-export function buildDeltaBundle(replicaId: string, targetReplica: string, item: InventoryItem): SyncDeltaBundle {
+export function buildDeltaBundle(
+  replicaId: string,
+  targetReplica: string,
+  records: InventoryItem[],
+): SyncDeltaBundle {
   return {
-    base_clock: { ...item.vector_clock },
+    base_clock: records[0]?.vector_clock ? { ...records[0].vector_clock } : {},
     bundle_id: `bundle-${Date.now()}`,
     created_at: new Date().toISOString(),
     kind: 'sync-delta',
-    records: [item],
+    records,
     source_replica: replicaId,
     target_replica: targetReplica,
   };
+}
+
+export function filterChangedRecords(
+  items: InventoryItem[],
+  knownClock: Record<string, number>,
+) {
+  return items.filter((item) => {
+    const relation = compareVectorClock(knownClock, item.vector_clock);
+    return relation === 'before' || relation === 'concurrent';
+  });
+}
+
+export function mutateLocalInventory(
+  item: InventoryItem,
+  replicaId: string,
+  update: {
+    deltaQuantity?: number;
+    priority?: string;
+  },
+) {
+  return {
+    ...cloneItem(item),
+    conflicts: [],
+    last_writer: replicaId,
+    priority: update.priority ?? item.priority,
+    quantity: item.quantity + (update.deltaQuantity ?? 0),
+    updated_at: new Date().toISOString(),
+    vector_clock: bumpClock(item.vector_clock, replicaId),
+  } satisfies InventoryItem;
 }
 
 export function applyDeltaBundle(localItem: InventoryItem, bundle: SyncDeltaBundle) {
@@ -89,6 +123,7 @@ export function applyDeltaBundle(localItem: InventoryItem, bundle: SyncDeltaBund
         bytes_estimate: estimateBundleBytes(bundle),
         conflict_count: 0,
         merged_count: 0,
+        record_count: 0,
       },
     };
   }
@@ -101,6 +136,7 @@ export function applyDeltaBundle(localItem: InventoryItem, bundle: SyncDeltaBund
         bytes_estimate: estimateBundleBytes(bundle),
         conflict_count: 0,
         merged_count: 1,
+        record_count: bundle.records.length,
       },
     };
   }
@@ -112,6 +148,7 @@ export function applyDeltaBundle(localItem: InventoryItem, bundle: SyncDeltaBund
         bytes_estimate: estimateBundleBytes(bundle),
         conflict_count: 0,
         merged_count: 1,
+        record_count: bundle.records.length,
       },
     };
   }
@@ -149,6 +186,7 @@ export function applyDeltaBundle(localItem: InventoryItem, bundle: SyncDeltaBund
       bytes_estimate: estimateBundleBytes(bundle),
       conflict_count: conflicts.length > 0 ? 1 : 0,
       merged_count: 1,
+      record_count: bundle.records.length,
     },
   };
 }
@@ -181,6 +219,13 @@ function mergeVectorClock(left: Record<string, number>, right: Record<string, nu
     merged[replica] = Math.max(merged[replica] ?? 0, counter);
   }
   return merged;
+}
+
+function bumpClock(clock: Record<string, number>, replicaId: string) {
+  return {
+    ...clock,
+    [replicaId]: (clock[replicaId] ?? 0) + 1,
+  };
 }
 
 function estimateBundleBytes(bundle: SyncDeltaBundle) {

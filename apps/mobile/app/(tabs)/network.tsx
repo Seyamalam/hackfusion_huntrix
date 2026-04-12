@@ -164,8 +164,14 @@ export default function NetworkScreen() {
         <SectionCard
           eyebrow="Local Replica"
           title="Current sync payload state"
-          description="This is the inventory record the device currently has available to send through the sync-session protocol."
+          description="Mutate this local state independently on each phone, then exchange delta bundles to demonstrate real peer convergence and conflicts."
         >
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <ActionChip label="+10 Qty" onPress={wifiDirect.incrementQuantity} />
+            <ActionChip label="-10 Qty" onPress={wifiDirect.decrementQuantity} />
+            <ActionChip label="Set P0" onPress={() => wifiDirect.setPriority('P0')} tone="danger" />
+            <ActionChip label="Set P3" onPress={() => wifiDirect.setPriority('P3')} />
+          </View>
           <View style={{ gap: 10 }}>
             <InfoRow label="Item" value={wifiDirect.localInventory.name} />
             <InfoRow label="Quantity" value={String(wifiDirect.localInventory.quantity)} />
@@ -178,6 +184,16 @@ export default function NetworkScreen() {
                 .join(' | ')}
             />
             <InfoRow label="Last handshake" value={wifiDirect.lastHandshakeReplica ?? 'none'} />
+            <InfoRow
+              label="Known peer clock"
+              value={
+                wifiDirect.lastPeerAddress
+                  ? Object.entries(wifiDirect.peerClocks[wifiDirect.lastPeerAddress]?.knownClock ?? {})
+                      .map(([replica, counter]) => `${replica}:${counter}`)
+                      .join(' | ') || 'none'
+                  : 'none'
+              }
+            />
           </View>
         </SectionCard>
       </AnimatedPanel>
@@ -190,6 +206,7 @@ export default function NetworkScreen() {
             description="This summary updates when a sync-delta payload is received and merged on-device."
           >
             <View style={{ gap: 10 }}>
+              <InfoRow label="Records in bundle" value={String(wifiDirect.sessionSummary.record_count)} />
               <InfoRow label="Merged records" value={String(wifiDirect.sessionSummary.merged_count)} />
               <InfoRow label="Conflicts" value={String(wifiDirect.sessionSummary.conflict_count)} />
               <InfoRow label="Payload bytes" value={String(wifiDirect.sessionSummary.bytes_estimate)} />

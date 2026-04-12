@@ -21,11 +21,20 @@ import {
   buildDeltaBundle,
   buildHandshake,
   createSeedInventoryItem,
+  filterChangedRecords,
+  mutateLocalInventory,
   type InventoryItem,
   type SyncDeltaBundle,
   type SyncHandshake,
   type SyncSessionSummary,
 } from '@/src/features/sync-demo/sync-protocol';
+import {
+  readLocalInventory,
+  readPeerClocks,
+  readReplicaId,
+  writeLocalInventory,
+  writePeerClocks,
+} from '@/src/features/wifi-direct/wifi-direct-storage';
 
 type WifiDirectState = {
   connectionInfo: WifiP2pInfo | null;
@@ -35,9 +44,18 @@ type WifiDirectState = {
   isReceiving: boolean;
   isScanning: boolean;
   lastHandshakeReplica: string | null;
+  lastPeerAddress: string | null;
   localInventory: InventoryItem;
   messages: string[];
   peers: Device[];
+  peerClocks: Record<
+    string,
+    {
+      knownClock: Record<string, number>;
+      replicaId: string | null;
+    }
+  >;
+  replicaId: string;
   sessionSummary: SyncSessionSummary | null;
   transportNote: string;
 };
@@ -50,9 +68,12 @@ const INITIAL_STATE: WifiDirectState = {
   isReceiving: false,
   isScanning: false,
   lastHandshakeReplica: null,
+  lastPeerAddress: null,
   localInventory: createSeedInventoryItem(),
   messages: [],
   peers: [],
+  peerClocks: {},
+  replicaId: 'android-peer',
   sessionSummary: null,
   transportNote:
     'Wi-Fi Direct is the first credible path for actual phone-to-phone delta sync in this stack.',
@@ -82,7 +103,23 @@ export function useWifiDirect() {
       return;
     }
 
+    let active = true;
+    Promise.all([readReplicaId(), readLocalInventory(), readPeerClocks()]).then(
+      ([replicaId, localInventory, peerClocks]) => {
+        if (!active) {
+          return;
+        }
+        setState((current) => ({
+          ...current,
+          localInventory,
+          peerClocks,
+          replicaId,
+        }));
+      },
+    );
+
     return () => {
+      active = false;
       for (const subscription of subscriptionsRef.current) {
         subscription.remove();
       }
@@ -188,6 +225,7 @@ export function useWifiDirect() {
         ...current,
         connectionInfo,
         error: null,
+        lastPeerAddress: deviceAddress,
       }));
     } catch (error) {
       setState((current) => ({
@@ -199,7 +237,7 @@ export function useWifiDirect() {
 
   async function sendHandshake(deviceAddress: string) {
     const payload = JSON.stringify(
-      buildHandshake('android-peer', state.localInventory.vector_clock),
+      buildHandshake(state.replicaId, state.localInventory.vector_clock),
     );
 
     try {
@@ -207,6 +245,7 @@ export function useWifiDirect() {
       setState((current) => ({
         ...current,
         error: null,
+        lastPeerAddress: deviceAddress,
         messages: [
           `to ${deviceAddress}: handshake sent`,
           ...current.messages,
@@ -221,8 +260,11 @@ export function useWifiDirect() {
   }
 
   async function sendDeltaBundle(deviceAddress: string) {
+    const targetReplica = state.peerClocks[deviceAddress]?.replicaId ?? state.lastHandshakeReplica ?? deviceAddress;
+    const knownClock = state.peerClocks[deviceAddress]?.knownClock ?? {};
+    const changedRecords = filterChangedRecords([state.localInventory], knownClock);
     const payload = JSON.stringify(
-      buildDeltaBundle('android-peer', deviceAddress, state.localInventory),
+      buildDeltaBundle(state.replicaId, targetReplica, changedRecords),
     );
 
     try {
@@ -230,7 +272,14 @@ export function useWifiDirect() {
       setState((current) => ({
         ...current,
         error: null,
+        lastPeerAddress: deviceAddress,
         messages: [`to ${deviceAddress}: delta bundle sent`, ...current.messages].slice(0, 8),
+        sessionSummary: {
+          bytes_estimate: payload.length,
+          conflict_count: 0,
+          merged_count: 0,
+          record_count: changedRecords.length,
+        },
       }));
     } catch (error) {
       setState((current) => ({
@@ -245,10 +294,46 @@ export function useWifiDirect() {
     connectToPeer,
     discoverPeers,
     initializeTransport,
+    setPriority,
+    incrementQuantity,
+    decrementQuantity,
     sendDeltaBundle,
     sendHandshake,
     stopDiscovery,
   };
+
+  function incrementQuantity() {
+    setState((current) => ({
+      ...current,
+      localInventory: persistLocalInventory(
+        mutateLocalInventory(current.localInventory, current.replicaId, {
+          deltaQuantity: 10,
+        }),
+      ),
+    }));
+  }
+
+  function decrementQuantity() {
+    setState((current) => ({
+      ...current,
+      localInventory: persistLocalInventory(
+        mutateLocalInventory(current.localInventory, current.replicaId, {
+          deltaQuantity: -10,
+        }),
+      ),
+    }));
+  }
+
+  function setPriority(priority: string) {
+    setState((current) => ({
+      ...current,
+      localInventory: persistLocalInventory(
+        mutateLocalInventory(current.localInventory, current.replicaId, {
+          priority,
+        }),
+      ),
+    }));
+  }
 
   function handleIncomingPayload(fromAddress: string, payload: unknown) {
     if (!payload || typeof payload !== 'object' || !('kind' in payload)) {
@@ -262,14 +347,26 @@ export function useWifiDirect() {
     const kind = String((payload as { kind: string }).kind);
     if (kind === 'sync-handshake') {
       const handshake = payload as SyncHandshake;
-      setState((current) => ({
-        ...current,
-        lastHandshakeReplica: handshake.replica_id,
-        messages: [
-          `from ${fromAddress}: handshake from ${handshake.replica_id}`,
-          ...current.messages,
-        ].slice(0, 8),
-      }));
+      setState((current) => {
+        const nextPeerClocks = {
+          ...current.peerClocks,
+          [fromAddress]: {
+            knownClock: { ...handshake.vector_clock },
+            replicaId: handshake.replica_id,
+          },
+        };
+        void writePeerClocks(nextPeerClocks);
+        return {
+          ...current,
+          lastHandshakeReplica: handshake.replica_id,
+          lastPeerAddress: fromAddress,
+          peerClocks: nextPeerClocks,
+          messages: [
+            `from ${fromAddress}: handshake from ${handshake.replica_id}`,
+            ...current.messages,
+          ].slice(0, 8),
+        };
+      });
       return;
     }
 
@@ -277,13 +374,25 @@ export function useWifiDirect() {
       const bundle = payload as SyncDeltaBundle;
       setState((current) => {
         const result = applyDeltaBundle(current.localInventory, bundle);
+        const nextPeerClocks = {
+          ...current.peerClocks,
+          [fromAddress]: {
+            knownClock:
+              bundle.records[0]?.vector_clock ?? current.peerClocks[fromAddress]?.knownClock ?? {},
+            replicaId: bundle.source_replica,
+          },
+        };
+        void writePeerClocks(nextPeerClocks);
+        persistLocalInventory(result.item);
         return {
           ...current,
+          lastPeerAddress: fromAddress,
           localInventory: result.item,
           messages: [
             `from ${fromAddress}: delta bundle applied`,
             ...current.messages,
           ].slice(0, 8),
+          peerClocks: nextPeerClocks,
           sessionSummary: result.summary,
         };
       });
@@ -310,4 +419,9 @@ async function requestWifiDirectPermissions() {
 
 function hasNativeWifiDirectModule() {
   return Boolean((NativeModules as Record<string, unknown>).RnWifiP2P);
+}
+
+function persistLocalInventory(item: InventoryItem) {
+  void writeLocalInventory(item);
+  return item;
 }
