@@ -10,21 +10,36 @@ import { StatusPill } from '@/src/components/ui/status-pill';
 import {
   dashboardFallback,
   fetchDashboardSummary,
+  fetchMissionPlans,
+  fetchNetworkStatus,
+  missionFallback,
+  networkFallback,
   type DashboardSummary,
+  type MissionPlansResponse,
+  type NetworkStatus,
 } from '@/src/features/dashboard/dashboard-api';
 import { syncSignals } from '@/src/features/dashboard/dashboard-data';
+import { RouteGraphCard } from '@/src/features/dashboard/route-graph-card';
 import { palette } from '@/src/theme/palette';
 
 export default function CommandScreen() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [network, setNetwork] = useState<NetworkStatus | null>(null);
+  const [missions, setMissions] = useState<MissionPlansResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    fetchDashboardSummary(controller.signal)
-      .then((nextSummary) => {
+    Promise.all([
+      fetchDashboardSummary(controller.signal),
+      fetchNetworkStatus(controller.signal),
+      fetchMissionPlans(controller.signal),
+    ])
+      .then(([nextSummary, nextNetwork, nextMissions]) => {
         setSummary(nextSummary);
+        setNetwork(nextNetwork);
+        setMissions(nextMissions);
         setError(null);
       })
       .catch((fetchError: unknown) => {
@@ -38,6 +53,9 @@ export default function CommandScreen() {
   }, []);
 
   const liveSummary = summary ?? dashboardFallback;
+  const liveNetwork = network ?? networkFallback;
+  const liveMissions = missions ?? missionFallback;
+  const primaryMission = liveMissions.missions[0] ?? missionFallback.missions[0];
   const metrics = [
     {
       label: 'Active Relief Nodes',
@@ -58,6 +76,11 @@ export default function CommandScreen() {
       label: 'Boat ETA N1 -> N3',
       value: `${findRouteMinutes(liveSummary, 'speedboat')}m`,
       detail: 'Waterway-only constrained preview from the live routing service.',
+    },
+    {
+      label: 'Mission Handoffs',
+      value: String(primaryMission?.handoffs.length ?? 0).padStart(2, '0'),
+      detail: 'Cross-mode transfers are emitted by the backend mission planner, not faked in the UI.',
     },
   ];
 
@@ -80,6 +103,10 @@ export default function CommandScreen() {
           {syncSignals.map((signal) => (
             <StatusPill key={signal.label} label={signal.label} tone={signal.tone} />
           ))}
+          <StatusPill
+            label={`${liveSummary.last_recompute_ms ?? liveMissions.recompute_ms}ms recompute`}
+            tone="neutral"
+          />
         </HeroBanner>
       </AnimatedPanel>
 
@@ -109,15 +136,19 @@ export default function CommandScreen() {
       </AnimatedPanel>
 
       <AnimatedPanel index={2}>
+        <RouteGraphCard network={liveNetwork} mission={primaryMission} />
+      </AnimatedPanel>
+
+      <AnimatedPanel index={3}>
         <SectionCard
           eyebrow="Priority Pressure"
           title="Narrate the decision, not the math"
-          description="Use this card to explain why the engine would preempt lower-priority cargo when route conditions deteriorate."
+          description={liveSummary.weighted_graph_note ?? 'Weighted route cost combines travel time, risk, and capacity pressure.'}
         >
           <View style={{ gap: 10 }}>
             <InfoRow label="Priority under stress" value="P0 Medical" />
-            <InfoRow label="Fallback delivery mode" value="Boat reroute" />
-            <InfoRow label="Decision trigger" value="+30% travel slowdown" />
+            <InfoRow label="Fallback delivery mode" value={primaryMission?.handoffs[0] ? `${primaryMission.handoffs[0].from_vehicle} -> ${primaryMission.handoffs[0].to_vehicle}` : 'Direct route'} />
+            <InfoRow label="Decision trigger" value={`Recompute in ${liveMissions.recompute_ms} ms`} />
           </View>
         </SectionCard>
       </AnimatedPanel>

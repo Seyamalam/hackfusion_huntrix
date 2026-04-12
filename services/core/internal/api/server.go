@@ -51,6 +51,33 @@ type ActiveRoutesResponse struct {
 	ActiveRoutes       []RoutePreviewResponse `json:"active_routes"`
 }
 
+type HandoffEventResponse struct {
+	NodeID      string `json:"node_id"`
+	FromVehicle string `json:"from_vehicle"`
+	ToVehicle   string `json:"to_vehicle"`
+	PayloadKg   int    `json:"payload_kg"`
+	Reason      string `json:"reason"`
+}
+
+type MissionPlanResponse struct {
+	MissionID   string                 `json:"mission_id"`
+	Label       string                 `json:"label"`
+	TotalMins   int                    `json:"total_mins"`
+	TotalCost   int                    `json:"total_cost"`
+	StageCount  int                    `json:"stage_count"`
+	Stages      []RoutePreviewResponse `json:"stages"`
+	Handoffs    []HandoffEventResponse `json:"handoffs"`
+	RecomputeMs int64                  `json:"recompute_ms,omitempty"`
+}
+
+type MissionPlansResponse struct {
+	Scenario           string                `json:"scenario"`
+	AppliedFailureEdge string                `json:"applied_failure_edge,omitempty"`
+	FailureStatus      string                `json:"failure_status,omitempty"`
+	RecomputeMs        int64                 `json:"recompute_ms"`
+	Missions           []MissionPlanResponse `json:"missions"`
+}
+
 func NewServer(mapPath, chaosURL string) *Server {
 	server := &Server{
 		mapPath:       mapPath,
@@ -63,6 +90,7 @@ func NewServer(mapPath, chaosURL string) *Server {
 	server.httpMux.HandleFunc("/api/network/status", server.handleNetworkStatus)
 	server.httpMux.HandleFunc("/api/route/preview", server.handleRoutePreview)
 	server.httpMux.HandleFunc("/api/routes/active", server.handleActiveRoutes)
+	server.httpMux.HandleFunc("/api/routes/missions", server.handleMissionRoutes)
 	server.httpMux.HandleFunc("/api/dashboard/summary", server.handleDashboardSummary)
 	server.httpMux.HandleFunc("/api/sync/inventory/state", server.handleInventoryDemoState)
 	server.httpMux.HandleFunc("/api/sync/inventory/reset", server.handleInventoryDemoReset)
@@ -236,6 +264,44 @@ func (s *Server) handleActiveRoutes(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Server) handleMissionRoutes(w http.ResponseWriter, r *http.Request) {
+	graph, err := s.loadGraph(r)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+
+	failedEdgeID := strings.TrimSpace(r.URL.Query().Get("failed_edge"))
+	failureStatus := defaultString(r.URL.Query().Get("failure_status"), "washed_out")
+	if failedEdgeID != "" {
+		graph = applyEdgeFailure(graph, failedEdgeID, failureStatus)
+	}
+
+	engine := routing.NewEngine(graph)
+	start := time.Now()
+	missions := make([]MissionPlanResponse, 0, 2)
+	for _, request := range defaultMissionRequests() {
+		mission, missionErr := engine.ComputeMission(request)
+		if missionErr != nil {
+			continue
+		}
+		missions = append(missions, toMissionPlanResponse(mission))
+	}
+
+	recomputeMs := time.Since(start).Milliseconds()
+	for i := range missions {
+		missions[i].RecomputeMs = recomputeMs
+	}
+
+	writeJSON(w, http.StatusOK, MissionPlansResponse{
+		Scenario:           graph.Metadata.Scenario,
+		AppliedFailureEdge: failedEdgeID,
+		FailureStatus:      failureStatus,
+		RecomputeMs:        recomputeMs,
+		Missions:           missions,
+	})
+}
+
 func (s *Server) loadGraph(r *http.Request) (scenario.Graph, error) {
 	if s.chaosURL != "" {
 		return chaos.NewClient(s.chaosURL).FetchNetworkStatus(r.Context())
@@ -314,6 +380,81 @@ func defaultActiveRouteRequests() []routing.RouteRequest {
 			Target:      "N4",
 			PayloadKg:   12,
 		},
+	}
+}
+
+func defaultMissionRequests() []routing.MissionRequest {
+	return []routing.MissionRequest{
+		{
+			MissionID: "mission-med-airlift",
+			Label:     "Medical handoff to Companyganj",
+			Stages: []routing.RouteRequest{
+				{
+					VehicleType: routing.VehicleTypeTruck,
+					Source:      "N1",
+					Target:      "N2",
+					PayloadKg:   12,
+				},
+				{
+					VehicleType: routing.VehicleTypeDrone,
+					Source:      "N2",
+					Target:      "N4",
+					PayloadKg:   12,
+				},
+			},
+		},
+		{
+			MissionID: "mission-river-relief",
+			Label:     "Bulk relief to Sunamganj",
+			Stages: []routing.RouteRequest{
+				{
+					VehicleType: routing.VehicleTypeSpeedboat,
+					Source:      "N1",
+					Target:      "N3",
+					PayloadKg:   80,
+				},
+			},
+		},
+	}
+}
+
+func toMissionPlanResponse(plan routing.MissionPlan) MissionPlanResponse {
+	stages := make([]RoutePreviewResponse, 0, len(plan.Stages))
+	for _, stage := range plan.Stages {
+		if len(stage.Legs) == 0 {
+			continue
+		}
+		stages = append(stages, RoutePreviewResponse{
+			Source:    stage.Legs[0].Source,
+			Target:    stage.Legs[len(stage.Legs)-1].Target,
+			Vehicle:   string(stage.VehicleType),
+			PayloadKg: stage.PayloadKg,
+			TotalMins: stage.TotalMins,
+			TotalCost: stage.TotalCost,
+			LegCount:  len(stage.Legs),
+			Legs:      stage.Legs,
+		})
+	}
+
+	handoffs := make([]HandoffEventResponse, 0, len(plan.Handoffs))
+	for _, handoff := range plan.Handoffs {
+		handoffs = append(handoffs, HandoffEventResponse{
+			NodeID:      handoff.NodeID,
+			FromVehicle: string(handoff.FromVehicle),
+			ToVehicle:   string(handoff.ToVehicle),
+			PayloadKg:   handoff.PayloadKg,
+			Reason:      handoff.Reason,
+		})
+	}
+
+	return MissionPlanResponse{
+		MissionID:  plan.MissionID,
+		Label:      plan.Label,
+		TotalMins:  plan.TotalMins,
+		TotalCost:  plan.TotalCost,
+		StageCount: len(stages),
+		Stages:     stages,
+		Handoffs:   handoffs,
 	}
 }
 

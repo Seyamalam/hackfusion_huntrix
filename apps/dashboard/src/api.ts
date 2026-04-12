@@ -1,4 +1,4 @@
-import type { DashboardSnapshot, DashboardSummary, Graph } from "./types";
+import type { DashboardSnapshot, DashboardSummary, Graph, MissionPlansResponse } from "./types";
 
 const DEFAULT_API_BASE = "http://127.0.0.1:8080";
 const SNAPSHOT_KEY = "huntrix-delta-dashboard-snapshot";
@@ -18,14 +18,16 @@ async function fetchJSON<T>(path: string): Promise<T> {
 }
 
 export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
-  const [graph, summary] = await Promise.all([
+  const [graph, summary, missions] = await Promise.all([
     fetchJSON<Graph>("/api/network/status"),
     fetchJSON<DashboardSummary>("/api/dashboard/summary"),
+    fetchJSON<MissionPlansResponse>("/api/routes/missions"),
   ]);
 
   const snapshot = {
     graph,
     summary,
+    missions,
     fetchedAt: new Date().toISOString(),
   } satisfies DashboardSnapshot;
 

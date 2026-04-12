@@ -112,6 +112,7 @@ function App() {
   const vehiclePositions = deriveVehiclePositions(snapshot.graph, snapshot.summary.route_previews);
   const blockedEdges = snapshot.graph.edges.filter((edge) => edge.is_flooded);
   const openEdges = snapshot.graph.edges.filter((edge) => !edge.is_flooded);
+  const primaryMission = snapshot.missions.missions[0];
 
   return (
     <main className="shell">
@@ -258,6 +259,7 @@ function App() {
               <MetricCard label="Edges" value={snapshot.summary.edge_count} />
               <MetricCard label="Blocked" value={snapshot.summary.blocked_edge_count} tone="danger" />
               <MetricCard label="Routes" value={snapshot.summary.route_previews.length} tone="good" />
+              <MetricCard label="Handoffs" value={primaryMission?.handoffs.length ?? 0} tone="neutral" />
             </div>
             {error ? <p className="warning-banner">Live refresh error: {error}</p> : null}
           </article>
@@ -283,6 +285,38 @@ function App() {
                 </div>
               ))}
             </div>
+          </article>
+
+          <article className="panel routes-panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Multimodal Mission</p>
+                <h2>Cross-mode handoffs</h2>
+              </div>
+            </div>
+            {primaryMission ? (
+              <div className="route-list">
+                <div className="route-card">
+                  <div className="route-topline">
+                    <span className="vehicle-pill" data-vehicle={primaryMission.stages[0]?.vehicle ?? "truck"}>
+                      {primaryMission.stage_count} stages
+                    </span>
+                    <span>{primaryMission.total_mins} min</span>
+                  </div>
+                  <strong>{primaryMission.label}</strong>
+                  <p>
+                    {primaryMission.stages.map((stage) => `${stage.vehicle}: ${stage.source} -> ${stage.target}`).join(" / ")}
+                  </p>
+                  {primaryMission.handoffs.map((handoff) => (
+                    <p key={`${handoff.node_id}-${handoff.from_vehicle}-${handoff.to_vehicle}`}>
+                      Handoff at {handoff.node_id}: {handoff.from_vehicle} {"->"} {handoff.to_vehicle}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="muted-copy">No multimodal mission is active in this snapshot.</p>
+            )}
           </article>
 
           <article className="panel routes-panel">
@@ -339,7 +373,7 @@ function edgeToPolyline(graph: Graph, edge: Edge): [number, number][] {
 
 function routeToPolyline(graph: Graph, route: RoutePreview): [number, number][] {
   const points: [number, number][] = [];
-  for (const leg of route.legs) {
+  for (const leg of route.legs ?? []) {
     const segment = edgeToPolyline(graph, {
       id: leg.edgeId ?? leg.edge_id ?? `${leg.source}-${leg.target}`,
       source: leg.source,
