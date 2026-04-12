@@ -25,6 +25,7 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [ ] Implement per-device key provisioning
 - [x] Add tamper-evident auth logs with corruption detection demo
 - [x] Enforce the exact RBAC roles from the restored statement
+- [x] Add inventory CRDT and vector-clock merge foundation in Go
 - [ ] Implement CRDT inventory entries with vector clocks and conflict UI
 - [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
