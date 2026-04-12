@@ -14,9 +14,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "com.seyamalam.huntrixdelta",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.seyamalam.huntrixdelta",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -31,7 +33,24 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-dev-client",
+        {
+          "launchMode": "most-recent"
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": [
+            "central"
+          ],
+          "bluetoothAlwaysPermission": "Allow Huntrix Delta to discover nearby relief devices over Bluetooth.",
+          "neverForLocation": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -27,6 +27,7 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [x] Enforce the exact RBAC roles from the restored statement
 - [x] Add inventory CRDT and vector-clock merge foundation in Go
 - [x] Implement CRDT inventory entries with vector clocks and conflict UI
+- [x] Scaffold Expo dev-client and native BLE discovery for transport readiness
 - [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [ ] Add `DEMO.md`, model card, and submission assets
@@ -61,6 +62,8 @@ bun install
 bun run start
 bun run web
 bunx tsc --noEmit
+eas build -p android --profile development
+eas build -p ios --profile development
 ```
 
 If the app is running on a physical phone, set the backend host explicitly:
@@ -68,6 +71,13 @@ If the app is running on a physical phone, set the backend host explicitly:
 cd apps/mobile
 $env:EXPO_PUBLIC_API_BASE_URL="http://YOUR_COMPUTER_LAN_IP:8080"
 bun run start
+```
+
+For native BLE testing in a dev build:
+```bash
+cd apps/mobile
+$env:EXPO_PUBLIC_API_BASE_URL="http://YOUR_COMPUTER_LAN_IP:8080"
+npx expo start --dev-client
 ```
 
 ### Go Core
