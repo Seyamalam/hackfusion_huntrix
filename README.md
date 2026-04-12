@@ -18,6 +18,7 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [x] Expose routing through a lightweight Go HTTP API
 - [x] Replace the command and network views with live backend fetches
 - [x] Generate Go and TypeScript code from `.proto` files
+- [x] Generate Go gRPC service stubs and add a first gRPC server
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [ ] Add `DEMO.md`, model card, and submission assets
 
@@ -57,6 +58,8 @@ go run ./services/core/cmd/scenario
 go run ./services/core/cmd/scenario -chaos-url http://127.0.0.1:5000
 go run ./services/core/cmd/api
 go run ./services/core/cmd/api -chaos-url http://127.0.0.1:5000
+go run ./services/core/cmd/grpcapi
+go run ./services/core/cmd/grpcapi -chaos-url http://127.0.0.1:5000
 ```
 
 ### Chaos Simulator
