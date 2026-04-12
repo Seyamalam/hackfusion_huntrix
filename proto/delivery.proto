@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package digitaldelta.v1;
+
+option go_package = "github.com/Seyamalam/hackfusion_huntrix/proto/gen/go/digitaldeltav1;digitaldeltav1";
+
+import "common.proto";
+
+message Delivery {
+  string delivery_id = 1;
+  string description = 2;
+  DeliveryPriority priority = 3;
+  string origin_node_id = 4;
+  string destination_node_id = 5;
+  string assigned_vehicle_id = 6;
+  repeated string cargo_tags = 7;
+  uint32 weight_kg = 8;
+  uint64 due_by_unix_ms = 9;
+}
+
+message ProofOfDeliveryChallenge {
+  string delivery_id = 1;
+  string sender_node_id = 2;
+  bytes sender_public_key = 3;
+  bytes payload_hash = 4;
+  string nonce = 5;
+  uint64 timestamp_unix_ms = 6;
+  bytes signature = 7;
+}
+
+message GeneratePodChallengeRequest {
+  string delivery_id = 1;
+  string sender_node_id = 2;
+  bytes sender_public_key = 3;
+  bytes payload_hash = 4;
+}
+
+message DeliveryReceipt {
+  string receipt_id = 1;
+  string delivery_id = 2;
+  string from_node_id = 3;
+  string to_node_id = 4;
+  uint64 received_at_unix_ms = 5;
+  bytes challenge_hash = 6;
+  bytes receiver_signature = 7;
+  bytes sender_signature = 8;
+}
+
+message ConfirmPodRequest {
+  ProofOfDeliveryChallenge challenge = 1;
+  DeliveryReceipt receipt = 2;
+}
+
+message ConfirmPodResponse {
+  bool accepted = 1;
+  bool replay_detected = 2;
+  string rejection_reason = 3;
+}
+
+service DeliveryService {
+  rpc GeneratePodChallenge(GeneratePodChallengeRequest) returns (ProofOfDeliveryChallenge);
+  rpc ConfirmPod(ConfirmPodRequest) returns (ConfirmPodResponse);
+}

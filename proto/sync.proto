@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package digitaldelta.v1;
+
+option go_package = "github.com/Seyamalam/hackfusion_huntrix/proto/gen/go/digitaldeltav1;digitaldeltav1";
+
+import "common.proto";
+
+message ReplicaMetadata {
+  string entity_id = 1;
+  string replica_id = 2;
+  repeated VectorClockEntry vector_clock = 3;
+  uint64 logical_time = 4;
+  uint64 updated_at_unix_ms = 5;
+  bool tombstone = 6;
+}
+
+message SyncOperation {
+  string operation_id = 1;
+  string entity_type = 2;
+  bytes payload = 3;
+  ReplicaMetadata metadata = 4;
+}
+
+message RelayEnvelope {
+  string envelope_id = 1;
+  string dedupe_key = 2;
+  string sender_node_id = 3;
+  string intended_recipient_node_id = 4;
+  uint32 ttl_hops = 5;
+  uint64 created_at_unix_ms = 6;
+  uint64 expires_at_unix_ms = 7;
+  bytes encrypted_payload = 8;
+  bytes payload_sha256 = 9;
+  repeated string relay_path = 10;
+}
+
+message SyncBundle {
+  string bundle_id = 1;
+  string source_replica_id = 2;
+  repeated SyncOperation operations = 3;
+  repeated RelayEnvelope envelopes = 4;
+}
+
+message ExchangeBundleRequest {
+  string target_replica_id = 1;
+  SyncBundle bundle = 2;
+}
+
+message ExchangeBundleResponse {
+  string replica_id = 1;
+  repeated string accepted_operation_ids = 2;
+  repeated string rejected_operation_ids = 3;
+  repeated string pending_envelope_ids = 4;
+}
+
+message PullPendingRequest {
+  string replica_id = 1;
+  uint32 max_items = 2;
+}
+
+message PullPendingResponse {
+  repeated RelayEnvelope envelopes = 1;
+}
+
+service SyncService {
+  rpc ExchangeBundle(ExchangeBundleRequest) returns (ExchangeBundleResponse);
+  rpc PullPending(PullPendingRequest) returns (PullPendingResponse);
+}

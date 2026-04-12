@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package digitaldelta.v1;
+
+option go_package = "github.com/Seyamalam/hackfusion_huntrix/proto/gen/go/digitaldeltav1;digitaldeltav1";
+
+import "common.proto";
+
+message NetworkNode {
+  string node_id = 1;
+  string name = 2;
+  string node_type = 3;
+  GeoPoint location = 4;
+}
+
+message NetworkEdge {
+  string edge_id = 1;
+  string source_node_id = 2;
+  string target_node_id = 3;
+  LinkType link_type = 4;
+  uint32 base_weight_mins = 5;
+  bool blocked = 6;
+  double risk_score = 7;
+}
+
+message FleetVehicle {
+  string vehicle_id = 1;
+  VehicleType vehicle_type = 2;
+  string current_node_id = 3;
+  uint32 battery_percent = 4;
+  uint32 capacity_kg = 5;
+}
+
+message RouteRequest {
+  string request_id = 1;
+  string origin_node_id = 2;
+  string destination_node_id = 3;
+  VehicleType vehicle_type = 4;
+  DeliveryPriority priority = 5;
+  bool allow_high_risk_edges = 6;
+}
+
+message RouteLeg {
+  string edge_id = 1;
+  string source_node_id = 2;
+  string target_node_id = 3;
+  LinkType link_type = 4;
+  uint32 weight_mins = 5;
+  double applied_risk_penalty = 6;
+}
+
+message RoutePlan {
+  string route_id = 1;
+  repeated RouteLeg legs = 2;
+  uint32 total_eta_mins = 3;
+  bool sla_breach_predicted = 4;
+  string explanation = 5;
+}
+
+message UpsertNetworkStateRequest {
+  repeated NetworkNode nodes = 1;
+  repeated NetworkEdge edges = 2;
+}
+
+message UpsertNetworkStateResponse {
+  uint32 node_count = 1;
+  uint32 edge_count = 2;
+}
+
+service RoutingService {
+  rpc ComputeRoute(RouteRequest) returns (RoutePlan);
+  rpc UpsertNetworkState(UpsertNetworkStateRequest) returns (UpsertNetworkStateResponse);
+}

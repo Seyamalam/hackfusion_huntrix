@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package digitaldelta.v1;
+
+option go_package = "github.com/Seyamalam/hackfusion_huntrix/proto/gen/go/digitaldeltav1;digitaldeltav1";
+
+message VectorClockEntry {
+  string replica_id = 1;
+  uint64 counter = 2;
+}
+
+message GeoPoint {
+  double lat = 1;
+  double lng = 2;
+}
+
+enum NodeRole {
+  NODE_ROLE_UNSPECIFIED = 0;
+  NODE_ROLE_COORDINATOR = 1;
+  NODE_ROLE_VOLUNTEER = 2;
+  NODE_ROLE_MEDIC = 3;
+  NODE_ROLE_DRONE_OPERATOR = 4;
+  NODE_ROLE_RELAY = 5;
+}
+
+enum DeliveryPriority {
+  DELIVERY_PRIORITY_UNSPECIFIED = 0;
+  DELIVERY_PRIORITY_P0 = 1;
+  DELIVERY_PRIORITY_P1 = 2;
+  DELIVERY_PRIORITY_P2 = 3;
+  DELIVERY_PRIORITY_P3 = 4;
+}
+
+enum LinkType {
+  LINK_TYPE_UNSPECIFIED = 0;
+  LINK_TYPE_ROAD = 1;
+  LINK_TYPE_WATERWAY = 2;
+  LINK_TYPE_AIRWAY = 3;
+}
+
+enum VehicleType {
+  VEHICLE_TYPE_UNSPECIFIED = 0;
+  VEHICLE_TYPE_TRUCK = 1;
+  VEHICLE_TYPE_SPEEDBOAT = 2;
+  VEHICLE_TYPE_DRONE = 3;
+}
+
+enum SyncState {
+  SYNC_STATE_UNSPECIFIED = 0;
+  SYNC_STATE_OFFLINE = 1;
+  SYNC_STATE_SYNCING = 2;
+  SYNC_STATE_CONFLICT = 3;
+  SYNC_STATE_VERIFIED = 4;
+}
