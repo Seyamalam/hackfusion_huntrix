@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
-import { hmac } from '@noble/hashes/hmac';
-import { sha1 } from '@noble/hashes/sha1';
+import { hmac } from '@noble/hashes/hmac.js';
+import { sha1 } from '@noble/hashes/legacy.js';
 import { ed25519 } from '@noble/curves/ed25519.js';
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';

@@ -22,11 +22,11 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [x] Generate Go gRPC service stubs and add a first gRPC server
 - [x] Add a real gRPC `ComputeRoute` smoke path and client
 - [x] Implement offline TOTP/HOTP auth flow with expiry/regeneration demo
-- [ ] Implement per-device key provisioning
+- [x] Implement per-device key provisioning
 - [x] Add tamper-evident auth logs with corruption detection demo
 - [x] Enforce the exact RBAC roles from the restored statement
 - [x] Add inventory CRDT and vector-clock merge foundation in Go
-- [ ] Implement CRDT inventory entries with vector clocks and conflict UI
+- [x] Implement CRDT inventory entries with vector clocks and conflict UI
 - [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [ ] Add `DEMO.md`, model card, and submission assets
@@ -81,6 +81,16 @@ go run ./services/core/cmd/grpcapi
 go run ./services/core/cmd/grpcapi -chaos-url http://127.0.0.1:5000
 go run ./services/core/cmd/grpcclient
 go run ./services/core/cmd/grpcclient -vehicle speedboat
+```
+
+### M2 Demo Endpoints
+```bash
+curl http://127.0.0.1:8080/api/sync/inventory/state
+curl -X POST "http://127.0.0.1:8080/api/sync/inventory/apply?scenario=causal"
+curl -X POST "http://127.0.0.1:8080/api/sync/inventory/apply?scenario=conflict"
+curl -X POST "http://127.0.0.1:8080/api/sync/inventory/resolve?choice=local"
+curl -X POST "http://127.0.0.1:8080/api/sync/inventory/resolve?choice=remote"
+curl -X POST http://127.0.0.1:8080/api/sync/inventory/reset
 ```
 
 ### Chaos Simulator

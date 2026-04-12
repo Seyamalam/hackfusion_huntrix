@@ -13,9 +13,10 @@ import (
 )
 
 type Server struct {
-	mapPath  string
-	chaosURL string
-	httpMux  *http.ServeMux
+	mapPath       string
+	chaosURL      string
+	httpMux       *http.ServeMux
+	inventoryDemo *inventoryDemoStore
 }
 
 type RoutePreviewResponse struct {
@@ -37,15 +38,20 @@ type DashboardSummary struct {
 
 func NewServer(mapPath, chaosURL string) *Server {
 	server := &Server{
-		mapPath:  mapPath,
-		chaosURL: strings.TrimRight(chaosURL, "/"),
-		httpMux:  http.NewServeMux(),
+		mapPath:       mapPath,
+		chaosURL:      strings.TrimRight(chaosURL, "/"),
+		httpMux:       http.NewServeMux(),
+		inventoryDemo: newInventoryDemoStore(),
 	}
 
 	server.httpMux.HandleFunc("/healthz", server.handleHealth)
 	server.httpMux.HandleFunc("/api/network/status", server.handleNetworkStatus)
 	server.httpMux.HandleFunc("/api/route/preview", server.handleRoutePreview)
 	server.httpMux.HandleFunc("/api/dashboard/summary", server.handleDashboardSummary)
+	server.httpMux.HandleFunc("/api/sync/inventory/state", server.handleInventoryDemoState)
+	server.httpMux.HandleFunc("/api/sync/inventory/reset", server.handleInventoryDemoReset)
+	server.httpMux.HandleFunc("/api/sync/inventory/apply", server.handleInventoryDemoApply)
+	server.httpMux.HandleFunc("/api/sync/inventory/resolve", server.handleInventoryDemoResolve)
 
 	return server
 }

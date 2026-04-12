@@ -9,27 +9,27 @@ import (
 type VectorClock map[string]uint64
 
 type VersionedValue struct {
-	ReplicaID string
-	Value     string
+	ReplicaID string `json:"replica_id"`
+	Value     string `json:"value"`
 }
 
 type Conflict struct {
-	Field         string
-	LocalValue    string
-	RemoteValue   string
-	LocalReplica  string
-	RemoteReplica string
+	Field         string `json:"field"`
+	LocalValue    string `json:"local_value"`
+	RemoteValue   string `json:"remote_value"`
+	LocalReplica  string `json:"local_replica"`
+	RemoteReplica string `json:"remote_replica"`
 }
 
 type InventoryItem struct {
-	ID          string
-	Name        string
-	Quantity    int
-	Priority    string
-	UpdatedAt   time.Time
-	LastWriter  string
-	VectorClock VectorClock
-	Conflicts   []Conflict
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Quantity    int         `json:"quantity"`
+	Priority    string      `json:"priority"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+	LastWriter  string      `json:"last_writer"`
+	VectorClock VectorClock `json:"vector_clock"`
+	Conflicts   []Conflict  `json:"conflicts"`
 }
 
 type MergeResult struct {
@@ -46,6 +46,7 @@ func NewInventoryItem(id, name string, quantity int, priority, replicaID string,
 		UpdatedAt:   updatedAt.UTC(),
 		LastWriter:  replicaID,
 		VectorClock: VectorClock{replicaID: 1},
+		Conflicts:   []Conflict{},
 	}
 }
 
@@ -56,7 +57,7 @@ func (item InventoryItem) ApplyUpdate(replicaID string, quantity int, priority s
 	next.UpdatedAt = updatedAt.UTC()
 	next.LastWriter = replicaID
 	next.VectorClock = next.VectorClock.Next(replicaID)
-	next.Conflicts = nil
+	next.Conflicts = []Conflict{}
 	return next
 }
 
@@ -69,7 +70,7 @@ func (item InventoryItem) Clone() InventoryItem {
 		UpdatedAt:   item.UpdatedAt,
 		LastWriter:  item.LastWriter,
 		VectorClock: item.VectorClock.Clone(),
-		Conflicts:   append([]Conflict(nil), item.Conflicts...),
+		Conflicts:   append([]Conflict{}, item.Conflicts...),
 	}
 }
 
@@ -79,16 +80,16 @@ func MergeInventory(local, remote InventoryItem) MergeResult {
 	switch relation {
 	case HappensBefore:
 		next := remote.Clone()
-		next.Conflicts = nil
+		next.Conflicts = []Conflict{}
 		return MergeResult{Item: next}
 	case HappensAfter:
 		next := local.Clone()
-		next.Conflicts = nil
+		next.Conflicts = []Conflict{}
 		return MergeResult{Item: next}
 	case Equal:
 		next := local.Clone()
 		next.VectorClock = MergeVectorClock(local.VectorClock, remote.VectorClock)
-		next.Conflicts = nil
+		next.Conflicts = []Conflict{}
 		return MergeResult{Item: next}
 	case Concurrent:
 		return MergeResult{
@@ -139,6 +140,30 @@ func resolveConcurrent(local, remote InventoryItem) InventoryItem {
 	}
 
 	return winner
+}
+
+func ResolveConflicts(item InventoryItem, replicaID string, updatedAt time.Time, useRemote bool) InventoryItem {
+	next := item.Clone()
+	if len(next.Conflicts) == 0 {
+		return next
+	}
+
+	next.VectorClock = next.VectorClock.Next(replicaID)
+	next.LastWriter = replicaID
+	next.UpdatedAt = updatedAt.UTC()
+	if useRemote && len(next.Conflicts) > 0 {
+		for _, conflict := range next.Conflicts {
+			switch conflict.Field {
+			case "quantity":
+				fmt.Sscanf(conflict.RemoteValue, "%d", &next.Quantity)
+			case "priority":
+				next.Priority = conflict.RemoteValue
+			}
+		}
+	}
+
+	next.Conflicts = []Conflict{}
+	return next
 }
 
 type ClockRelation string

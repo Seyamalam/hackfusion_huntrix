@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { AnimatedPanel } from '@/src/components/ui/animated-panel';
+import { HeroBanner } from '@/src/components/ui/hero-banner';
+import { InfoRow } from '@/src/components/ui/info-row';
 import { MetricCard } from '@/src/components/ui/metric-card';
 import { SectionCard } from '@/src/components/ui/section-card';
 import { StatusPill } from '@/src/components/ui/status-pill';
@@ -28,7 +31,6 @@ export default function CommandScreen() {
         if (controller.signal.aborted) {
           return;
         }
-
         setError(fetchError instanceof Error ? fetchError.message : 'Failed to load dashboard');
       });
 
@@ -45,7 +47,7 @@ export default function CommandScreen() {
     {
       label: 'Blocked Segments',
       value: String(liveSummary.blocked_edge_count).padStart(2, '0'),
-      detail: 'Live edge failures come from the Go API, which can proxy the chaos simulator.',
+      detail: 'Live edge failures come from the Go API, which proxies the chaos simulator.',
     },
     {
       label: 'Truck ETA N1 -> N3',
@@ -62,56 +64,63 @@ export default function CommandScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{
-        gap: 16,
-        padding: 20,
-      }}
+      contentContainerStyle={{ gap: 16, padding: 20 }}
       style={{ flex: 1, backgroundColor: palette.canvas }}
     >
-      <SectionCard
-        eyebrow="Huntrix Delta"
-        title="Flood command overview"
-        description={
-          error
-            ? `Backend unavailable, showing fallback data. ${error}`
-            : `Live summary loaded from the routing API for scenario ${liveSummary.scenario}.`
-        }
-      >
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+      <AnimatedPanel index={0}>
+        <HeroBanner
+          eyebrow="Huntrix Delta"
+          title="Disaster command pulse"
+          description={
+            error
+              ? `Backend unavailable, showing fallback data. ${error}`
+              : `Live summary loaded from the routing API for scenario ${liveSummary.scenario}.`
+          }
+        >
           {syncSignals.map((signal) => (
             <StatusPill key={signal.label} label={signal.label} tone={signal.tone} />
           ))}
-        </View>
-      </SectionCard>
+        </HeroBanner>
+      </AnimatedPanel>
 
-      <View style={{ gap: 12 }}>
-        <Text
-          selectable
-          style={{
-            color: palette.textPrimary,
-            fontSize: 18,
-            fontWeight: '700',
-          }}
+      <AnimatedPanel index={1}>
+        <View style={{ gap: 12 }}>
+          <Text
+            selectable
+            style={{
+              color: palette.textPrimary,
+              fontSize: 18,
+              fontWeight: '700',
+            }}
+          >
+            Operational Snapshot
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            {metrics.map((metric) => (
+              <MetricCard
+                key={metric.label}
+                label={metric.label}
+                value={metric.value}
+                detail={metric.detail}
+              />
+            ))}
+          </View>
+        </View>
+      </AnimatedPanel>
+
+      <AnimatedPanel index={2}>
+        <SectionCard
+          eyebrow="Priority Pressure"
+          title="Narrate the decision, not the math"
+          description="Use this card to explain why the engine would preempt lower-priority cargo when route conditions deteriorate."
         >
-          Operational Snapshot
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          {metrics.map((metric) => (
-            <MetricCard
-              key={metric.label}
-              label={metric.label}
-              value={metric.value}
-              detail={metric.detail}
-            />
-          ))}
-        </View>
-      </View>
-
-      <SectionCard
-        eyebrow="Priority Pressure"
-        title="Triage engine recommends preemption"
-        description="If the Companyganj route slows by 30%, the current P0 medical load misses SLA. The next build step is to feed this panel from the triage engine rather than static copy."
-      />
+          <View style={{ gap: 10 }}>
+            <InfoRow label="Priority under stress" value="P0 Medical" />
+            <InfoRow label="Fallback delivery mode" value="Boat reroute" />
+            <InfoRow label="Decision trigger" value="+30% travel slowdown" />
+          </View>
+        </SectionCard>
+      </AnimatedPanel>
     </ScrollView>
   );
 }
