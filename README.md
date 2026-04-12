@@ -21,9 +21,10 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [x] Generate Go and TypeScript code from `.proto` files
 - [x] Generate Go gRPC service stubs and add a first gRPC server
 - [x] Add a real gRPC `ComputeRoute` smoke path and client
-- [ ] Implement offline TOTP/HOTP auth flow with expiry/regeneration demo
-- [ ] Implement per-device key provisioning plus tamper-evident auth logs
-- [ ] Enforce the exact RBAC roles from the restored statement
+- [x] Implement offline TOTP/HOTP auth flow with expiry/regeneration demo
+- [ ] Implement per-device key provisioning
+- [x] Add tamper-evident auth logs with corruption detection demo
+- [x] Enforce the exact RBAC roles from the restored statement
 - [ ] Implement CRDT inventory entries with vector clocks and conflict UI
 - [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data

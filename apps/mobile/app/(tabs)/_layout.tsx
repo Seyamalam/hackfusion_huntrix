@@ -61,6 +61,14 @@ export default function TabLayout() {
           headerRight: HeaderAction,
         }}
       />
+      <Tabs.Screen
+        name="auth"
+        options={{
+          title: 'Auth',
+          tabBarLabel: 'Auth',
+          headerRight: HeaderAction,
+        }}
+      />
     </Tabs>
   );
 }
