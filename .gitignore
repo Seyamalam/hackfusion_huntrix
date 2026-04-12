@@ -2,6 +2,7 @@
 AGENTS.md
 todo.md
 problem-statement.md
+/chaos_server.py
 
 # Node / Expo
 node_modules/

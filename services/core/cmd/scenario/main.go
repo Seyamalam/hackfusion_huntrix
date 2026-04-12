@@ -1,18 +1,26 @@
 package main
 
 import (
+	"context"
+	"flag"
 	"fmt"
 	"log"
 	"path/filepath"
+	"time"
 
+	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/chaos"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/routing"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/scenario"
 )
 
 func main() {
-	mapPath := filepath.Join("data", "sylhet_map.json")
+	mapPath := flag.String("map", filepath.Join("data", "sylhet_map.json"), "path to scenario map JSON")
+	chaosURL := flag.String("chaos-url", "", "base URL for the chaos API, e.g. http://127.0.0.1:5000")
+	source := flag.String("from", "N1", "origin node id")
+	target := flag.String("to", "N3", "destination node id")
+	flag.Parse()
 
-	graph, err := scenario.LoadGraph(mapPath)
+	graph, err := loadGraph(*mapPath, *chaosURL)
 	if err != nil {
 		log.Fatalf("load scenario: %v", err)
 	}
@@ -24,12 +32,24 @@ func main() {
 
 	engine := routing.NewEngine(graph)
 	for _, vehicle := range []routing.VehicleType{routing.VehicleTypeTruck, routing.VehicleTypeSpeedboat} {
-		plan, err := engine.ComputeShortestPath(vehicle, "N1", "N3")
+		plan, err := engine.ComputeShortestPath(vehicle, *source, *target)
 		if err != nil {
-			log.Printf("%s route N1 -> N3 failed: %v", vehicle, err)
+			log.Printf("%s route %s -> %s failed: %v", vehicle, *source, *target, err)
 			continue
 		}
 
-		fmt.Printf("%s route N1 -> N3 total=%d mins legs=%d\n", vehicle, plan.TotalMins, len(plan.Legs))
+		fmt.Printf("%s route %s -> %s total=%d mins legs=%d\n", vehicle, *source, *target, plan.TotalMins, len(plan.Legs))
 	}
+}
+
+func loadGraph(mapPath, chaosURL string) (scenario.Graph, error) {
+	if chaosURL == "" {
+		return scenario.LoadGraph(mapPath)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	defer cancel()
+
+	client := chaos.NewClient(chaosURL)
+	return client.FetchNetworkStatus(ctx)
 }

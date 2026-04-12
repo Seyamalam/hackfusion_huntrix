@@ -12,9 +12,13 @@ func LoadGraph(path string) (Graph, error) {
 		return Graph{}, fmt.Errorf("read graph file: %w", err)
 	}
 
+	return ParseGraph(raw)
+}
+
+func ParseGraph(raw []byte) (Graph, error) {
 	var graph Graph
 	if err := json.Unmarshal(raw, &graph); err != nil {
-		return Graph{}, fmt.Errorf("decode graph file: %w", err)
+		return Graph{}, fmt.Errorf("decode graph payload: %w", err)
 	}
 
 	for i := range graph.Edges {
