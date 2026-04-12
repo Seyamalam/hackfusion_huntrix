@@ -8,17 +8,22 @@ import { InfoRow } from '@/src/components/ui/info-row';
 import { SectionCard } from '@/src/components/ui/section-card';
 import { StatusPill } from '@/src/components/ui/status-pill';
 import {
+  fetchFleetOrchestrationStatus,
   fetchNetworkStatus,
+  fleetFallback,
   networkFallback,
+  type FleetOrchestrationStatusResponse,
   type NetworkStatus,
 } from '@/src/features/dashboard/dashboard-api';
 import { useBleScanner } from '@/src/features/ble/use-ble-scanner';
+import { MeshThrottlePanel } from '@/src/features/fleet/mesh-throttle-panel';
 import { useMeshDemo } from '@/src/features/mesh/use-mesh-demo';
 import { useWifiDirect } from '@/src/features/wifi-direct/use-wifi-direct';
 import { palette } from '@/src/theme/palette';
 
 export default function NetworkScreen() {
   const [network, setNetwork] = useState<NetworkStatus | null>(null);
+  const [fleet, setFleet] = useState<FleetOrchestrationStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ble = useBleScanner();
   const mesh = useMeshDemo();
@@ -27,9 +32,13 @@ export default function NetworkScreen() {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetchNetworkStatus(controller.signal)
-      .then((nextNetwork) => {
+    Promise.all([
+      fetchNetworkStatus(controller.signal),
+      fetchFleetOrchestrationStatus(controller.signal),
+    ])
+      .then(([nextNetwork, nextFleet]) => {
         setNetwork(nextNetwork);
+        setFleet(nextFleet);
         setError(null);
       })
       .catch((fetchError: unknown) => {
@@ -44,6 +53,7 @@ export default function NetworkScreen() {
   }, []);
 
   const liveNetwork = network ?? networkFallback;
+  const liveFleet = fleet ?? fleetFallback;
 
   return (
     <ScrollView
@@ -238,6 +248,10 @@ export default function NetworkScreen() {
       ) : null}
 
       <AnimatedPanel index={7}>
+        <MeshThrottlePanel fleet={liveFleet} />
+      </AnimatedPanel>
+
+      <AnimatedPanel index={8}>
         <SectionCard
           eyebrow="Module 3"
           title="Store-and-forward mesh relay"
@@ -259,7 +273,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={8}>
+      <AnimatedPanel index={9}>
         <SectionCard
           eyebrow="Mesh Nodes"
           title="Automatic client / relay roles"
@@ -296,7 +310,7 @@ export default function NetworkScreen() {
       </AnimatedPanel>
 
       {mesh.envelopes.length > 0 ? (
-        <AnimatedPanel index={9}>
+        <AnimatedPanel index={10}>
           <SectionCard
             eyebrow="Relay Envelope"
             title="Encrypted packet state"
@@ -319,7 +333,7 @@ export default function NetworkScreen() {
       ) : null}
 
       {mesh.packetInspection ? (
-        <AnimatedPanel index={10}>
+        <AnimatedPanel index={11}>
           <SectionCard
             eyebrow="Packet Inspection"
             title="Relay cannot read payload"
@@ -335,7 +349,7 @@ export default function NetworkScreen() {
       ) : null}
 
       {mesh.events.length > 0 ? (
-        <AnimatedPanel index={11}>
+        <AnimatedPanel index={12}>
           <SectionCard
             eyebrow="Mesh Log"
             title="Relay and role-switch events"
@@ -352,7 +366,7 @@ export default function NetworkScreen() {
         </AnimatedPanel>
       ) : null}
 
-      <AnimatedPanel index={12}>
+      <AnimatedPanel index={13}>
         <SectionCard
           eyebrow="Native BLE"
           title="Discovered nearby devices"
@@ -390,7 +404,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={13}>
+      <AnimatedPanel index={14}>
         <SectionCard
           eyebrow="Topology"
           title="Relief nodes in the current scenario"

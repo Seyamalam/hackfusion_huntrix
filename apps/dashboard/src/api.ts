@@ -1,6 +1,7 @@
 import type {
   DashboardSnapshot,
   DashboardSummary,
+  FleetOrchestrationStatusResponse,
   Graph,
   MissionPlansResponse,
   PredictiveStatusResponse,
@@ -25,12 +26,13 @@ async function fetchJSON<T>(path: string): Promise<T> {
 }
 
 export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
-  const [graph, summary, missions, triage, predictive] = await Promise.all([
+  const [graph, summary, missions, triage, predictive, fleet] = await Promise.all([
     fetchJSON<Graph>("/api/network/status"),
     fetchJSON<DashboardSummary>("/api/dashboard/summary"),
     fetchJSON<MissionPlansResponse>("/api/routes/missions"),
     fetchJSON<TriageStatusResponse>("/api/triage/status"),
     fetchJSON<PredictiveStatusResponse>("/api/predictive/status"),
+    fetchJSON<FleetOrchestrationStatusResponse>("/api/fleet/orchestration/status"),
   ]);
 
   const snapshot = {
@@ -39,6 +41,7 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
     missions,
     triage,
     predictive,
+    fleet,
     fetchedAt: new Date().toISOString(),
   } satisfies DashboardSnapshot;
 

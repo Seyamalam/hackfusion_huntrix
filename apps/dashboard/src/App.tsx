@@ -117,7 +117,12 @@ function App() {
   const predictiveByEdge = new Map(
     predictive.status.predictions.map((prediction) => [prediction.edge_id, prediction]),
   );
+  const fleet = snapshot.fleet;
   const triage = snapshot.triage;
+  const flaggedZones =
+    fleet.status.live_reachability.drone_required_zones.length > 0
+      ? fleet.status.live_reachability.drone_required_zones
+      : fleet.status.drill_reachability.drone_required_zones;
 
   return (
     <main className="shell">
@@ -249,6 +254,31 @@ function App() {
                 ))}
               </Pane>
 
+              <Pane name="drone-zones" style={{ zIndex: 560 }}>
+                {flaggedZones.map((zone) => (
+                  <CircleMarker
+                    key={`zone-${zone.node_id}`}
+                    center={[zone.lat, zone.lng]}
+                    radius={14}
+                    pathOptions={{
+                      color: "#d22f5a",
+                      weight: 3,
+                      fillColor: "#d22f5a",
+                      fillOpacity: 0.22,
+                    }}
+                  >
+                    <Tooltip direction="top" offset={[0, -10]} permanent>
+                      Drone Required
+                    </Tooltip>
+                    <Popup>
+                      <strong>{zone.name}</strong>
+                      <br />
+                      {zone.reason}
+                    </Popup>
+                  </CircleMarker>
+                ))}
+              </Pane>
+
               <Pane name="vehicles" style={{ zIndex: 700 }}>
                 {vehiclePositions.map((vehicle) => (
                   <Marker
@@ -291,8 +321,106 @@ function App() {
               <MetricCard label="Handoffs" value={primaryMission?.handoffs.length ?? 0} tone="neutral" />
               <MetricCard label="Slowdown" value={triage.snapshot.slowdown_pct} tone="danger" />
               <MetricCard label="High Risk" value={predictive.status.predictions.filter((prediction) => prediction.high_risk).length} tone="danger" />
+              <MetricCard label="Drone Zones" value={flaggedZones.length} tone="danger" />
             </div>
             {error ? <p className="warning-banner">Live refresh error: {error}</p> : null}
+          </article>
+
+          <article className="panel routes-panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Module 8</p>
+                <h2>Hybrid fleet orchestration</h2>
+              </div>
+            </div>
+            <div className="route-list">
+              <div className="route-card">
+                <div className="route-topline">
+                  <span className="vehicle-pill" data-vehicle="drone">
+                    Drone-required zones
+                  </span>
+                  <span>{flaggedZones.length}</span>
+                </div>
+                <strong>
+                  {flaggedZones.length > 0 ? flaggedZones.map((zone) => zone.name).join(" / ") : "No live dead zones"}
+                </strong>
+                <p>
+                  {flaggedZones.length > 0
+                    ? flaggedZones.map((zone) => zone.reason).join(" ")
+                    : "The live graph currently keeps at least one surface route open to every destination."}
+                </p>
+              </div>
+              {fleet.status.rendezvous.map((scenario) => (
+                <div className="route-card" key={scenario.scenario_id}>
+                  <div className="route-topline">
+                    <span className="vehicle-pill" data-vehicle="speedboat">
+                      {scenario.best_meeting_node_id}
+                    </span>
+                    <span>{scenario.combined_mission_mins} min</span>
+                  </div>
+                  <strong>{scenario.label}</strong>
+                  <p>
+                    Boat {scenario.boat_travel_mins} min / Drone {scenario.drone_travel_mins + scenario.drone_final_leg_mins} min
+                  </p>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="panel routes-panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Handoff</p>
+                <h2>Boat to drone transfer</h2>
+              </div>
+            </div>
+            <div className="route-list">
+              <div className="route-card">
+                <div className="route-topline">
+                  <span className="vehicle-pill" data-vehicle="truck">
+                    {fleet.status.handoff.boat_arrival_node_id}
+                  </span>
+                  <span>{fleet.status.handoff.pod_receipt_id}</span>
+                </div>
+                <strong>{fleet.status.handoff.scenario_label}</strong>
+                <p>
+                  Ownership {fleet.status.handoff.ownership_before} {"->"} {fleet.status.handoff.ownership_after}
+                </p>
+                {fleet.status.handoff.ledger_history.map((entry) => (
+                  <p key={`${entry.event_type}-${entry.created_at}`}>
+                    [{entry.event_type}] {entry.detail}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </article>
+
+          <article className="panel routes-panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Mesh Throttle</p>
+                <h2>10-minute battery simulation</h2>
+              </div>
+            </div>
+            <div className="route-list">
+              <div className="route-card">
+                <div className="route-topline">
+                  <span className="vehicle-pill" data-vehicle="truck">
+                    {fleet.status.mesh_throttle.accelerometer_state}
+                  </span>
+                  <span>{fleet.status.mesh_throttle.battery_savings_pct}% savings</span>
+                </div>
+                <strong>Broadcast interval {fleet.status.mesh_throttle.base_interval_seconds}s {"->"} {fleet.status.mesh_throttle.adjusted_interval_seconds}s</strong>
+                <p>
+                  Broadcasts {fleet.status.mesh_throttle.baseline_broadcasts} {"->"} {fleet.status.mesh_throttle.adjusted_broadcasts}
+                </p>
+                {fleet.status.mesh_throttle.applied_rules.map((rule) => (
+                  <p key={rule.rule}>
+                    [{rule.applied ? "applied" : "idle"}] {rule.rule}: {rule.reason}
+                  </p>
+                ))}
+              </div>
+            </div>
           </article>
 
           <article className="panel routes-panel">

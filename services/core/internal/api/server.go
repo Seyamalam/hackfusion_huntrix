@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/chaos"
+	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/orchestration"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/predictive"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/routing"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/scenario"
@@ -91,6 +92,11 @@ type PredictiveStatusResponse struct {
 	RecomputeMs int64             `json:"recompute_ms"`
 }
 
+type FleetOrchestrationStatusResponse struct {
+	Status      orchestration.Status `json:"status"`
+	RecomputeMs int64                `json:"recompute_ms"`
+}
+
 type PreemptionDecision struct {
 	Triggered        bool     `json:"triggered"`
 	Action           string   `json:"action"`
@@ -118,6 +124,7 @@ func NewServer(mapPath, chaosURL string) *Server {
 	server.httpMux.HandleFunc("/api/routes/active", server.handleActiveRoutes)
 	server.httpMux.HandleFunc("/api/routes/missions", server.handleMissionRoutes)
 	server.httpMux.HandleFunc("/api/predictive/status", server.handlePredictiveStatus)
+	server.httpMux.HandleFunc("/api/fleet/orchestration/status", server.handleFleetOrchestrationStatus)
 	server.httpMux.HandleFunc("/api/triage/status", server.handleTriageStatus)
 	server.httpMux.HandleFunc("/api/dashboard/summary", server.handleDashboardSummary)
 	server.httpMux.HandleFunc("/api/sync/inventory/state", server.handleInventoryDemoState)
@@ -402,6 +409,21 @@ func (s *Server) handlePredictiveStatus(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, PredictiveStatusResponse{
+		Status:      status,
+		RecomputeMs: time.Since(start).Milliseconds(),
+	})
+}
+
+func (s *Server) handleFleetOrchestrationStatus(w http.ResponseWriter, r *http.Request) {
+	graph, err := s.loadGraph(r)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+
+	start := time.Now()
+	status := orchestration.Evaluate(graph)
+	writeJSON(w, http.StatusOK, FleetOrchestrationStatusResponse{
 		Status:      status,
 		RecomputeMs: time.Since(start).Milliseconds(),
 	})

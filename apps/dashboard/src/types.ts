@@ -196,6 +196,94 @@ export type PredictiveStatusResponse = {
   recompute_ms: number;
 };
 
+export type FleetOrchestrationStatusResponse = {
+  status: {
+    live_reachability: {
+      mode: string;
+      blocked_edges: string[];
+      drone_required_zones: {
+        node_id: string;
+        name: string;
+        lat: number;
+        lng: number;
+        reason: string;
+        truck_reachable: boolean;
+        boat_reachable: boolean;
+        drone_reachable: boolean;
+      }[];
+    };
+    drill_reachability: {
+      mode: string;
+      blocked_edges: string[];
+      drone_required_zones: {
+        node_id: string;
+        name: string;
+        lat: number;
+        lng: number;
+        reason: string;
+        truck_reachable: boolean;
+        boat_reachable: boolean;
+        drone_reachable: boolean;
+      }[];
+    };
+    rendezvous: {
+      scenario_id: string;
+      label: string;
+      boat_node_id: string;
+      drone_base_node_id: string;
+      destination_node_id: string;
+      best_meeting_node_id: string;
+      best_meeting_lat: number;
+      best_meeting_lng: number;
+      boat_travel_mins: number;
+      drone_travel_mins: number;
+      drone_final_leg_mins: number;
+      combined_mission_mins: number;
+      drone_range_km: number;
+      payload_kg: number;
+      feasible: boolean;
+      explanation: string;
+    }[];
+    handoff: {
+      scenario_label: string;
+      boat_arrival_node_id: string;
+      pod_receipt_id: string;
+      boat_signature_hash: string;
+      drone_countersign_hash: string;
+      ownership_before: string;
+      ownership_after: string;
+      transferred_cargo_id: string;
+      ledger_history: {
+        event_type: string;
+        actor: string;
+        detail: string;
+        created_at: string;
+        hash: string;
+      }[];
+    };
+    mesh_throttle: {
+      battery_pct: number;
+      accelerometer_state: string;
+      proximity_meters: number;
+      base_interval_seconds: number;
+      adjusted_interval_seconds: number;
+      duration_minutes: number;
+      baseline_broadcasts: number;
+      adjusted_broadcasts: number;
+      baseline_battery_drain_pct: number;
+      adjusted_battery_drain_pct: number;
+      battery_savings_pct: number;
+      applied_rules: {
+        rule: string;
+        reduction_pct: number;
+        applied: boolean;
+        reason: string;
+      }[];
+    };
+  };
+  recompute_ms: number;
+};
+
 export type DashboardSummary = {
   scenario: string;
   node_count: number;
@@ -212,5 +300,6 @@ export type DashboardSnapshot = {
   missions: MissionPlansResponse;
   triage: TriageStatusResponse;
   predictive: PredictiveStatusResponse;
+  fleet: FleetOrchestrationStatusResponse;
   fetchedAt: string;
 };

@@ -195,6 +195,94 @@ export type PredictiveStatusResponse = {
   recompute_ms: number;
 };
 
+export type FleetOrchestrationStatusResponse = {
+  status: {
+    live_reachability: {
+      mode: string;
+      blocked_edges: string[];
+      drone_required_zones: {
+        node_id: string;
+        name: string;
+        lat: number;
+        lng: number;
+        reason: string;
+        truck_reachable: boolean;
+        boat_reachable: boolean;
+        drone_reachable: boolean;
+      }[];
+    };
+    drill_reachability: {
+      mode: string;
+      blocked_edges: string[];
+      drone_required_zones: {
+        node_id: string;
+        name: string;
+        lat: number;
+        lng: number;
+        reason: string;
+        truck_reachable: boolean;
+        boat_reachable: boolean;
+        drone_reachable: boolean;
+      }[];
+    };
+    rendezvous: {
+      scenario_id: string;
+      label: string;
+      boat_node_id: string;
+      drone_base_node_id: string;
+      destination_node_id: string;
+      best_meeting_node_id: string;
+      best_meeting_lat: number;
+      best_meeting_lng: number;
+      boat_travel_mins: number;
+      drone_travel_mins: number;
+      drone_final_leg_mins: number;
+      combined_mission_mins: number;
+      drone_range_km: number;
+      payload_kg: number;
+      feasible: boolean;
+      explanation: string;
+    }[];
+    handoff: {
+      scenario_label: string;
+      boat_arrival_node_id: string;
+      pod_receipt_id: string;
+      boat_signature_hash: string;
+      drone_countersign_hash: string;
+      ownership_before: string;
+      ownership_after: string;
+      transferred_cargo_id: string;
+      ledger_history: {
+        event_type: string;
+        actor: string;
+        detail: string;
+        created_at: string;
+        hash: string;
+      }[];
+    };
+    mesh_throttle: {
+      battery_pct: number;
+      accelerometer_state: string;
+      proximity_meters: number;
+      base_interval_seconds: number;
+      adjusted_interval_seconds: number;
+      duration_minutes: number;
+      baseline_broadcasts: number;
+      adjusted_broadcasts: number;
+      baseline_battery_drain_pct: number;
+      adjusted_battery_drain_pct: number;
+      battery_savings_pct: number;
+      applied_rules: {
+        rule: string;
+        reduction_pct: number;
+        applied: boolean;
+        reason: string;
+      }[];
+    };
+  };
+  recompute_ms: number;
+};
+
 export type NetworkStatus = {
   metadata: {
     region: string;
@@ -412,6 +500,123 @@ export const predictiveFallback: PredictiveStatusResponse = {
   },
 };
 
+export const fleetFallback: FleetOrchestrationStatusResponse = {
+  recompute_ms: 18,
+  status: {
+    live_reachability: {
+      mode: 'live',
+      blocked_edges: [],
+      drone_required_zones: [],
+    },
+    drill_reachability: {
+      mode: 'handoff_drill',
+      blocked_edges: ['E3', 'E7'],
+      drone_required_zones: [
+        {
+          node_id: 'N4',
+          name: 'Companyganj Outpost',
+          lat: 25.0715,
+          lng: 91.7554,
+          reason: 'Road and water access unavailable; drone handoff required.',
+          truck_reachable: false,
+          boat_reachable: false,
+          drone_reachable: true,
+        },
+      ],
+    },
+    rendezvous: [
+      {
+        scenario_id: 'rv-1',
+        label: 'Boat to drone lift for Companyganj',
+        boat_node_id: 'N1',
+        drone_base_node_id: 'N2',
+        destination_node_id: 'N4',
+        best_meeting_node_id: 'N3',
+        best_meeting_lat: 25.0658,
+        best_meeting_lng: 91.4073,
+        boat_travel_mins: 150,
+        drone_travel_mins: 39,
+        drone_final_leg_mins: 29,
+        combined_mission_mins: 179,
+        drone_range_km: 70,
+        payload_kg: 8,
+        feasible: true,
+        explanation: 'Rendezvous at Sunamganj minimizes wait plus final-leg time.',
+      },
+      {
+        scenario_id: 'rv-2',
+        label: 'Medical relay to Sunamganj',
+        boat_node_id: 'N1',
+        drone_base_node_id: 'N2',
+        destination_node_id: 'N3',
+        best_meeting_node_id: 'N3',
+        best_meeting_lat: 25.0658,
+        best_meeting_lng: 91.4073,
+        boat_travel_mins: 150,
+        drone_travel_mins: 39,
+        drone_final_leg_mins: 0,
+        combined_mission_mins: 150,
+        drone_range_km: 80,
+        payload_kg: 6,
+        feasible: true,
+        explanation: 'Direct handoff at the destination is still the fastest rendezvous.',
+      },
+      {
+        scenario_id: 'rv-3',
+        label: 'Habiganj air bridge',
+        boat_node_id: 'N3',
+        drone_base_node_id: 'N4',
+        destination_node_id: 'N6',
+        best_meeting_node_id: 'N4',
+        best_meeting_lat: 25.0715,
+        best_meeting_lng: 91.7554,
+        boat_travel_mins: 50,
+        drone_travel_mins: 0,
+        drone_final_leg_mins: 39,
+        combined_mission_mins: 89,
+        drone_range_km: 90,
+        payload_kg: 7,
+        feasible: true,
+        explanation: 'Meeting at the drone base avoids unnecessary staging delay.',
+      },
+    ],
+    handoff: {
+      scenario_label: 'Boat-to-drone last-mile transfer',
+      boat_arrival_node_id: 'N2',
+      pod_receipt_id: 'pod-boat-drone-001',
+      boat_signature_hash: 'boat-signature',
+      drone_countersign_hash: 'drone-signature',
+      ownership_before: 'boat-convoy',
+      ownership_after: 'drone-flight',
+      transferred_cargo_id: 'cargo-p0-antivenom',
+      ledger_history: [
+        { event_type: 'boat_arrival', actor: 'boat-operator', detail: 'Boat reached rendezvous node N2 with the medical payload.', created_at: '2026-04-12T08:00:00Z', hash: 'handoff-hash-1' },
+        { event_type: 'pod_challenge_generated', actor: 'boat-operator', detail: 'Generated PoD receipt challenge for drone pickup.', created_at: '2026-04-12T08:00:10Z', hash: 'handoff-hash-2' },
+        { event_type: 'drone_countersigned', actor: 'drone-operator', detail: 'Drone acknowledged pickup and countersigned the handoff receipt.', created_at: '2026-04-12T08:00:45Z', hash: 'handoff-hash-3' },
+        { event_type: 'ownership_transferred', actor: 'sync-ledger', detail: 'CRDT ledger updated: ownership transferred from boat convoy to drone flight.', created_at: '2026-04-12T08:00:55Z', hash: 'handoff-hash-4' },
+      ],
+    },
+    mesh_throttle: {
+      battery_pct: 24,
+      accelerometer_state: 'stationary',
+      proximity_meters: 18,
+      base_interval_seconds: 5,
+      adjusted_interval_seconds: 62.5,
+      duration_minutes: 10,
+      baseline_broadcasts: 120,
+      adjusted_broadcasts: 9,
+      baseline_battery_drain_pct: 2.16,
+      adjusted_battery_drain_pct: 0.16,
+      battery_savings_pct: 92.59,
+      applied_rules: [
+        { rule: 'battery_below_30', reduction_pct: 60, applied: true, reason: 'Battery under 30% reduces broadcast frequency by 60%.' },
+        { rule: 'stationary_motion', reduction_pct: 80, applied: true, reason: 'Stationary state reduces broadcast frequency by 80%.' },
+        { rule: 'near_known_node', reduction_pct: 50, applied: true, reason: 'Near a known node, mesh rebroadcasts can be throttled further.' },
+      ],
+    },
+  },
+};
+
 export async function fetchDashboardSummary(signal?: AbortSignal): Promise<DashboardSummary> {
   const response = await fetch(`${apiBaseUrl}/api/dashboard/summary`, { signal });
   if (!response.ok) {
@@ -455,4 +660,13 @@ export async function fetchPredictiveStatus(signal?: AbortSignal): Promise<Predi
   }
 
   return (await response.json()) as PredictiveStatusResponse;
+}
+
+export async function fetchFleetOrchestrationStatus(signal?: AbortSignal): Promise<FleetOrchestrationStatusResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/fleet/orchestration/status`, { signal });
+  if (!response.ok) {
+    throw new Error(`fleet orchestration request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as FleetOrchestrationStatusResponse;
 }
