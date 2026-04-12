@@ -32,3 +32,6 @@ coverage.out
 Thumbs.db
 .idea/
 .vscode/
+
+# Local codegen tooling cache
+scripts/.tools/

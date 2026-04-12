@@ -17,7 +17,7 @@ Offline-first disaster logistics prototype for the HackFusion 2026 `Digital Delt
 - [x] Bridge chaos API output into the Go routing preview
 - [x] Expose routing through a lightweight Go HTTP API
 - [x] Replace the command and network views with live backend fetches
-- [ ] Generate Go and TypeScript code from `.proto` files
+- [x] Generate Go and TypeScript code from `.proto` files
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [ ] Add `DEMO.md`, model card, and submission assets
 
@@ -64,4 +64,12 @@ go run ./services/core/cmd/api -chaos-url http://127.0.0.1:5000
 python -m pip install -r services/chaos/requirements.txt
 python services/chaos/chaos_server.py
 ```
+
+### Protobuf Codegen
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/install-protoc.ps1
+powershell -ExecutionPolicy Bypass -File scripts/generate-proto.ps1
+```
+
+If Go dependency fetch is blocked on your network, the generator still emits the `.pb.go` and `.ts` files, but `go mod tidy` may need to be retried later.
 
