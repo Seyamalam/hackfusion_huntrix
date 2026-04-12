@@ -6,6 +6,7 @@ export type AuthRole =
   | 'sync_admin';
 
 export type AuthEventType =
+  | 'authz_denied'
   | 'key_pair_provisioned'
   | 'seed_created'
   | 'totp_viewed'
@@ -37,10 +38,18 @@ export type AuthState = {
   deviceId: string;
   devicePrivateKeyHex: string;
   devicePublicKeyHex: string;
+  identityLedger: IdentityLedgerEntry[];
   role: AuthRole;
   totpSecretBase32: string;
   hotpCounter: number;
   auditLog: AuthLogEntry[];
+};
+
+export type IdentityLedgerEntry = {
+  deviceId: string;
+  publicKeyHex: string;
+  recordedAt: string;
+  replicaRole: AuthRole;
 };
 
 export type TotpSnapshot = {

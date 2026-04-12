@@ -8,6 +8,7 @@ import { SectionCard } from '@/src/components/ui/section-card';
 import { StatusPill } from '@/src/components/ui/status-pill';
 import { AuthLogCard } from '@/src/features/auth/components/auth-log-card';
 import { OtpCard } from '@/src/features/auth/components/otp-card';
+import { permissionMatrix } from '@/src/features/auth/auth-rbac';
 import { useAuthDemo } from '@/src/features/auth/use-auth-demo';
 import { palette } from '@/src/theme/palette';
 
@@ -32,6 +33,7 @@ export default function AuthScreen() {
 
   const state = auth.state;
   const snapshot = auth.snapshot;
+  const permissions = permissionMatrix();
 
   return (
     <ScrollView
@@ -55,7 +57,7 @@ export default function AuthScreen() {
         <SectionCard
           eyebrow="Key Pair"
           title="Per-device Ed25519 identity"
-          description="The public key is suitable for shared-ledger registration. The private key is kept in secure local storage with a web fallback for development."
+          description="The public key is registered into a local identity ledger. The private key is kept in secure local storage with a web fallback for development."
         >
           <View style={{ gap: 10 }}>
             <InfoRow
@@ -63,6 +65,7 @@ export default function AuthScreen() {
               value={`${state.devicePublicKeyHex.slice(0, 12)}...${state.devicePublicKeyHex.slice(-12)}`}
             />
             <InfoRow label="Storage mode" value="SecureStore with web fallback" />
+            <InfoRow label="Identity ledger entries" value={String(state.identityLedger.length)} />
           </View>
         </SectionCard>
       </AnimatedPanel>
@@ -116,6 +119,38 @@ export default function AuthScreen() {
 
       <AnimatedPanel index={5}>
         <SectionCard
+          eyebrow="Permissions"
+          title="RBAC data-layer policy"
+          description="This matrix shows which roles are allowed to mutate inventory, resolve conflicts, rotate secrets, and send sync traffic."
+        >
+          <View style={{ gap: 12 }}>
+            {Object.entries(permissions).map(([role, actions]) => (
+              <View
+                key={role}
+                style={{
+                  gap: 8,
+                  borderRadius: 20,
+                  borderCurve: 'continuous',
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                  backgroundColor: palette.shell,
+                  padding: 14,
+                }}
+              >
+                <Text selectable style={{ color: palette.textPrimary, fontWeight: '800' }}>
+                  {role.replaceAll('_', ' ')}
+                </Text>
+                <Text selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
+                  {actions.length > 0 ? actions.join(', ') : 'read-only'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </SectionCard>
+      </AnimatedPanel>
+
+      <AnimatedPanel index={6}>
+        <SectionCard
           eyebrow="Login Demo"
           title="OTP verification and tamper checks"
           description="Use these controls to append login events, inject a corrupted log entry, and verify the audit chain detects it."
@@ -132,7 +167,7 @@ export default function AuthScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={6}>
+      <AnimatedPanel index={7}>
         <SectionCard
           eyebrow="Audit Trail"
           title="Hash-chained auth events"

@@ -1,3 +1,4 @@
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import React from 'react';
 import { Link, Tabs } from 'expo-router';
 import { Pressable, Text } from 'react-native';
@@ -42,6 +43,7 @@ export default function TabLayout() {
         options={{
           title: 'Command',
           tabBarLabel: 'Command',
+          tabBarIcon: ({ color }) => <FontAwesome name="dashboard" size={18} color={color} />,
           headerRight: HeaderAction,
         }}
       />
@@ -50,6 +52,7 @@ export default function TabLayout() {
         options={{
           title: 'Deliveries',
           tabBarLabel: 'Deliveries',
+          tabBarIcon: ({ color }) => <FontAwesome name="dropbox" size={18} color={color} />,
           headerRight: HeaderAction,
         }}
       />
@@ -58,6 +61,7 @@ export default function TabLayout() {
         options={{
           title: 'Network',
           tabBarLabel: 'Network',
+          tabBarIcon: ({ color }) => <FontAwesome name="exchange" size={18} color={color} />,
           headerRight: HeaderAction,
         }}
       />
@@ -66,6 +70,7 @@ export default function TabLayout() {
         options={{
           title: 'Auth',
           tabBarLabel: 'Auth',
+          tabBarIcon: ({ color }) => <FontAwesome name="shield" size={18} color={color} />,
           headerRight: HeaderAction,
         }}
       />

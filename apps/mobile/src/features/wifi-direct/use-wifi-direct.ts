@@ -1,21 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { NativeModules, PermissionsAndroid } from 'react-native';
 import type { EmitterSubscription } from 'react-native';
-import {
-  connect,
-  getAvailablePeers,
-  getConnectionInfo,
-  initialize,
-  sendMessageTo,
-  startDiscoveringPeers,
-  startReceivingMessage,
-  stop,
-  stopDiscoveringPeers,
-  subscribeOnConnectionInfoUpdates,
-  subscribeOnPeersUpdates,
-  type Device,
-  type WifiP2pInfo,
-} from 'rn-wifi-p2p';
+import type { Device, WifiP2pInfo } from 'rn-wifi-p2p';
 import {
   applyDeltaBundle,
   buildDeltaBundle,
@@ -35,6 +21,8 @@ import {
   writeLocalInventory,
   writePeerClocks,
 } from '@/src/features/wifi-direct/wifi-direct-storage';
+import { canPerform } from '@/src/features/auth/auth-rbac';
+import { readRole } from '@/src/features/auth/auth-storage';
 
 type WifiDirectState = {
   connectionInfo: WifiP2pInfo | null;
@@ -82,6 +70,7 @@ const INITIAL_STATE: WifiDirectState = {
 export function useWifiDirect() {
   const subscriptionsRef = useRef<EmitterSubscription[]>([]);
   const stopReceivingRef = useRef<(() => void) | null>(null);
+  const moduleRef = useRef<WifiDirectModule | null>(null);
   const [state, setState] = useState<WifiDirectState>(INITIAL_STATE);
 
   useEffect(() => {
@@ -125,7 +114,11 @@ export function useWifiDirect() {
       }
       subscriptionsRef.current = [];
       stopReceivingRef.current?.();
-      void stop();
+      if (hasNativeWifiDirectModule()) {
+        void import('rn-wifi-p2p')
+          .then((wifiDirect) => wifiDirect.stop())
+          .catch(() => undefined);
+      }
     };
   }, []);
 
@@ -144,15 +137,16 @@ export function useWifiDirect() {
     }
 
     try {
-      const initialized = await initialize();
-      const connectionInfo = await getConnectionInfo().catch(() => null);
+      const wifiDirect = await getWifiDirectModule(moduleRef);
+      const initialized = await wifiDirect.initialize();
+      const connectionInfo = await wifiDirect.getConnectionInfo().catch(() => null);
 
       for (const subscription of subscriptionsRef.current) {
         subscription.remove();
       }
       subscriptionsRef.current = [];
       subscriptionsRef.current.push(
-        subscribeOnPeersUpdates(({ devices }) => {
+        wifiDirect.subscribeOnPeersUpdates(({ devices }) => {
           setState((current) => ({
             ...current,
             peers: devices,
@@ -160,7 +154,7 @@ export function useWifiDirect() {
         }),
       );
       subscriptionsRef.current.push(
-        subscribeOnConnectionInfoUpdates((nextInfo) => {
+        wifiDirect.subscribeOnConnectionInfoUpdates((nextInfo) => {
           setState((current) => ({
             ...current,
             connectionInfo: nextInfo,
@@ -168,7 +162,7 @@ export function useWifiDirect() {
         }),
       );
       stopReceivingRef.current?.();
-      stopReceivingRef.current = await startReceivingMessage(
+      stopReceivingRef.current = await wifiDirect.startReceivingMessage(
         { meta: true },
         (message) => {
           handleIncomingPayload(message.fromAddress, message.message);
@@ -193,8 +187,9 @@ export function useWifiDirect() {
 
   async function discoverPeers() {
     try {
-      await startDiscoveringPeers();
-      const peerList = await getAvailablePeers();
+      const wifiDirect = await getWifiDirectModule(moduleRef);
+      await wifiDirect.startDiscoveringPeers();
+      const peerList = await wifiDirect.getAvailablePeers();
       setState((current) => ({
         ...current,
         error: null,
@@ -210,7 +205,7 @@ export function useWifiDirect() {
   }
 
   async function stopDiscovery() {
-    await stopDiscoveringPeers().catch(() => undefined);
+    await moduleRef.current?.stopDiscoveringPeers().catch(() => undefined);
     setState((current) => ({
       ...current,
       isScanning: false,
@@ -219,8 +214,9 @@ export function useWifiDirect() {
 
   async function connectToPeer(deviceAddress: string) {
     try {
-      await connect(deviceAddress);
-      const connectionInfo = await getConnectionInfo().catch(() => null);
+      const wifiDirect = await getWifiDirectModule(moduleRef);
+      await wifiDirect.connect(deviceAddress);
+      const connectionInfo = await wifiDirect.getConnectionInfo().catch(() => null);
       setState((current) => ({
         ...current,
         connectionInfo,
@@ -236,12 +232,22 @@ export function useWifiDirect() {
   }
 
   async function sendHandshake(deviceAddress: string) {
+    const role = (await readRole()) ?? 'field_volunteer';
+    if (!canPerform(role, 'send_sync')) {
+      setState((current) => ({
+        ...current,
+        error: `Role ${role} cannot start a sync session.`,
+      }));
+      return;
+    }
+
     const payload = JSON.stringify(
       buildHandshake(state.replicaId, state.localInventory.vector_clock),
     );
 
     try {
-      await sendMessageTo(payload, deviceAddress);
+      const wifiDirect = await getWifiDirectModule(moduleRef);
+      await wifiDirect.sendMessageTo(payload, deviceAddress);
       setState((current) => ({
         ...current,
         error: null,
@@ -260,6 +266,15 @@ export function useWifiDirect() {
   }
 
   async function sendDeltaBundle(deviceAddress: string) {
+    const role = (await readRole()) ?? 'field_volunteer';
+    if (!canPerform(role, 'send_sync')) {
+      setState((current) => ({
+        ...current,
+        error: `Role ${role} cannot send sync bundles.`,
+      }));
+      return;
+    }
+
     const targetReplica = state.peerClocks[deviceAddress]?.replicaId ?? state.lastHandshakeReplica ?? deviceAddress;
     const knownClock = state.peerClocks[deviceAddress]?.knownClock ?? {};
     const changedRecords = filterChangedRecords([state.localInventory], knownClock);
@@ -268,7 +283,8 @@ export function useWifiDirect() {
     );
 
     try {
-      await sendMessageTo(payload, deviceAddress);
+      const wifiDirect = await getWifiDirectModule(moduleRef);
+      await wifiDirect.sendMessageTo(payload, deviceAddress);
       setState((current) => ({
         ...current,
         error: null,
@@ -303,36 +319,15 @@ export function useWifiDirect() {
   };
 
   function incrementQuantity() {
-    setState((current) => ({
-      ...current,
-      localInventory: persistLocalInventory(
-        mutateLocalInventory(current.localInventory, current.replicaId, {
-          deltaQuantity: 10,
-        }),
-      ),
-    }));
+    void mutateInventory(10);
   }
 
   function decrementQuantity() {
-    setState((current) => ({
-      ...current,
-      localInventory: persistLocalInventory(
-        mutateLocalInventory(current.localInventory, current.replicaId, {
-          deltaQuantity: -10,
-        }),
-      ),
-    }));
+    void mutateInventory(-10);
   }
 
   function setPriority(priority: string) {
-    setState((current) => ({
-      ...current,
-      localInventory: persistLocalInventory(
-        mutateLocalInventory(current.localInventory, current.replicaId, {
-          priority,
-        }),
-      ),
-    }));
+    void applyPriority(priority);
   }
 
   function handleIncomingPayload(fromAddress: string, payload: unknown) {
@@ -404,6 +399,48 @@ export function useWifiDirect() {
       messages: [`from ${fromAddress}: unknown kind ${kind}`, ...current.messages].slice(0, 8),
     }));
   }
+
+  async function mutateInventory(deltaQuantity: number) {
+    const role = (await readRole()) ?? 'field_volunteer';
+    if (!canPerform(role, 'mutate_inventory')) {
+      setState((current) => ({
+        ...current,
+        error: `Role ${role} cannot mutate inventory records.`,
+      }));
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      error: null,
+      localInventory: persistLocalInventory(
+        mutateLocalInventory(current.localInventory, current.replicaId, {
+          deltaQuantity,
+        }),
+      ),
+    }));
+  }
+
+  async function applyPriority(priority: string) {
+    const role = (await readRole()) ?? 'field_volunteer';
+    if (!canPerform(role, 'mutate_inventory')) {
+      setState((current) => ({
+        ...current,
+        error: `Role ${role} cannot change inventory priority.`,
+      }));
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      error: null,
+      localInventory: persistLocalInventory(
+        mutateLocalInventory(current.localInventory, current.replicaId, {
+          priority,
+        }),
+      ),
+    }));
+  }
 }
 
 async function requestWifiDirectPermissions() {
@@ -424,4 +461,46 @@ function hasNativeWifiDirectModule() {
 function persistLocalInventory(item: InventoryItem) {
   void writeLocalInventory(item);
   return item;
+}
+
+type WifiDirectModule = {
+  connect: (deviceAddress: string) => Promise<void>;
+  getAvailablePeers: () => Promise<{ devices: Device[] }>;
+  getConnectionInfo: () => Promise<WifiP2pInfo>;
+  initialize: () => Promise<boolean>;
+  sendMessageTo: (message: string, address: string) => Promise<unknown>;
+  startDiscoveringPeers: () => Promise<void>;
+  startReceivingMessage: (
+    props?: { meta?: boolean },
+    callback?: (message: { fromAddress: string; message: unknown }) => void,
+    options?: { parse?: (message: string) => unknown; useJson?: boolean },
+  ) => Promise<() => void>;
+  stop: () => Promise<boolean>;
+  stopDiscoveringPeers: () => Promise<void>;
+  subscribeOnConnectionInfoUpdates: (callback: (data: WifiP2pInfo) => void) => EmitterSubscription;
+  subscribeOnPeersUpdates: (callback: (data: { devices: Device[] }) => void) => EmitterSubscription;
+};
+
+async function getWifiDirectModule(
+  ref: React.MutableRefObject<WifiDirectModule | null>,
+) {
+  if (ref.current) {
+    return ref.current;
+  }
+
+  const module = await import('rn-wifi-p2p');
+  ref.current = {
+    connect: module.connect,
+    getAvailablePeers: module.getAvailablePeers,
+    getConnectionInfo: module.getConnectionInfo,
+    initialize: module.initialize,
+    sendMessageTo: module.sendMessageTo,
+    startDiscoveringPeers: module.startDiscoveringPeers,
+    startReceivingMessage: module.startReceivingMessage,
+    stop: module.stop,
+    stopDiscoveringPeers: module.stopDiscoveringPeers,
+    subscribeOnConnectionInfoUpdates: module.subscribeOnConnectionInfoUpdates,
+    subscribeOnPeersUpdates: module.subscribeOnPeersUpdates,
+  };
+  return ref.current;
 }

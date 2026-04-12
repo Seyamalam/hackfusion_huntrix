@@ -5,6 +5,7 @@ import {
   readDevicePrivateKey,
   readDevicePublicKey,
   readHotpCounter,
+  readIdentityLedger,
   readRole,
   readTotpSecret,
   writeAuditLog,
@@ -12,9 +13,11 @@ import {
   writeDevicePrivateKey,
   writeDevicePublicKey,
   writeHotpCounter,
+  writeIdentityLedger,
   writeRole,
   writeTotpSecret,
 } from '@/src/features/auth/auth-storage';
+import { canPerform } from '@/src/features/auth/auth-rbac';
 import {
   createDeviceId,
   createDeviceKeyPair,
@@ -35,6 +38,7 @@ export async function ensureAuthState() {
   let totpSecretBase32 = await readTotpSecret();
   const hotpCounter = await readHotpCounter();
   const auditLog = await readAuditLog();
+  let identityLedger = await readIdentityLedger();
 
   if (!deviceId) {
     deviceId = createDeviceId();
@@ -65,6 +69,7 @@ export async function ensureAuthState() {
     deviceId,
     devicePrivateKeyHex,
     devicePublicKeyHex,
+    identityLedger,
     role,
     totpSecretBase32,
     hotpCounter,
@@ -81,11 +86,20 @@ export async function ensureAuthState() {
   }
 
   if (keyPairProvisioned) {
+    identityLedger = appendLedgerRecord(identityLedger, {
+      deviceId,
+      publicKeyHex: devicePublicKeyHex,
+      recordedAt: new Date().toISOString(),
+      replicaRole: nextState.role,
+    });
+    await writeIdentityLedger(identityLedger);
+
     nextState = await appendAuditEvent(nextState, 'key_pair_provisioned', {
       detail: 'Provisioned per-device Ed25519 keypair for offline identity.',
       keyFingerprint: publicKeyFingerprint(devicePublicKeyHex),
       role: nextState.role,
     });
+    nextState.identityLedger = identityLedger;
   }
 
   return nextState;
@@ -157,6 +171,13 @@ export async function attemptTotpLogin(state: AuthState, providedCode: string) {
 }
 
 export async function rotateSecret(state: AuthState) {
+  if (!canPerform(state.role, 'rotate_secret')) {
+    return appendAuditEvent(state, 'authz_denied', {
+      detail: `Denied OTP seed rotation for role ${state.role}.`,
+      role: state.role,
+    });
+  }
+
   const nextSecret = generateSecretBase32();
   await writeTotpSecret(nextSecret);
 
@@ -241,6 +262,13 @@ export async function detectAuditTampering(state: AuthState) {
   };
 }
 
+export async function recordAuthorizationDenied(state: AuthState, detail: string) {
+  return appendAuditEvent(state, 'authz_denied', {
+    detail,
+    role: state.role,
+  });
+}
+
 async function appendAuditEvent(state: AuthState, type: AuthLogEntry['type'], payload: AuthEventPayload) {
   const id = createDeviceId();
   const createdAt = new Date().toISOString();
@@ -278,4 +306,12 @@ async function buildHash(
 
 function previewSecret(secret: string) {
   return `${secret.slice(0, 4)}...${secret.slice(-4)}`;
+}
+
+function appendLedgerRecord(
+  ledger: AuthState['identityLedger'],
+  entry: AuthState['identityLedger'][number],
+) {
+  const next = ledger.filter((current) => current.deviceId !== entry.deviceId);
+  return [...next, entry];
 }

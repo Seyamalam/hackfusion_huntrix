@@ -7,6 +7,8 @@ import { HeroBanner } from '@/src/components/ui/hero-banner';
 import { InfoRow } from '@/src/components/ui/info-row';
 import { SectionCard } from '@/src/components/ui/section-card';
 import { StatusPill } from '@/src/components/ui/status-pill';
+import { canPerform } from '@/src/features/auth/auth-rbac';
+import { readRole } from '@/src/features/auth/auth-storage';
 import {
   fetchInventoryDemoState,
   resetInventoryDemo,
@@ -35,12 +37,22 @@ export default function DeliveriesScreen() {
   }, []);
 
   async function runScenario(scenario: 'causal' | 'conflict') {
+    const role = (await readRole()) ?? 'field_volunteer';
+    if (!canPerform(role, 'mutate_inventory')) {
+      setStatus(`Role ${role} cannot mutate inventory.`);
+      return;
+    }
     const response = await runInventoryScenario(scenario);
     setDemo(response.state);
     setStatus(response.message);
   }
 
   async function resolve(choice: 'local' | 'remote') {
+    const role = (await readRole()) ?? 'field_volunteer';
+    if (!canPerform(role, 'resolve_conflict')) {
+      setStatus(`Role ${role} cannot resolve conflicts.`);
+      return;
+    }
     const response = await resolveInventoryConflict(choice);
     setDemo(response.state);
     setStatus(response.message);

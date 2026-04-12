@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
-import type { AuthLogEntry, AuthRole } from '@/src/features/auth/auth-types';
+import type { AuthLogEntry, AuthRole, IdentityLedgerEntry } from '@/src/features/auth/auth-types';
 
 const KEYS = {
   auditLog: 'huntrix.auth.audit-log',
@@ -9,6 +9,7 @@ const KEYS = {
   devicePrivateKey: 'huntrix.auth.device-private-key',
   devicePublicKey: 'huntrix.auth.device-public-key',
   hotpCounter: 'huntrix.auth.hotp-counter',
+  identityLedger: 'huntrix.auth.identity-ledger',
   role: 'huntrix.auth.role',
   secret: 'huntrix.auth.secret',
 } as const;
@@ -102,4 +103,13 @@ export async function readAuditLog() {
 
 export async function writeAuditLog(entries: AuthLogEntry[]) {
   await AsyncStorage.setItem(KEYS.auditLog, JSON.stringify(entries));
+}
+
+export async function readIdentityLedger() {
+  const value = await AsyncStorage.getItem(KEYS.identityLedger);
+  return value ? (JSON.parse(value) as IdentityLedgerEntry[]) : [];
+}
+
+export async function writeIdentityLedger(entries: IdentityLedgerEntry[]) {
+  await AsyncStorage.setItem(KEYS.identityLedger, JSON.stringify(entries));
 }

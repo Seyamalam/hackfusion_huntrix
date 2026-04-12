@@ -6,6 +6,7 @@ import {
   detectAuditTampering,
   ensureAuthState,
   generateNextHotp,
+  recordAuthorizationDenied,
   readTotpSnapshot,
   recordTotpViewed,
   rotateSecret,
@@ -134,7 +135,10 @@ export function useAuthDemo() {
     setDemo((current) => ({
       ...current,
       hotpCode: null,
-      loginStatus: 'OTP seed rotated',
+      loginStatus:
+        nextState.auditLog[nextState.auditLog.length - 1]?.type === 'authz_denied'
+          ? 'Role is not allowed to rotate the OTP seed'
+          : 'OTP seed rotated',
       compromised: false,
       state: nextState,
       snapshot: readTotpSnapshot(nextState),
@@ -184,9 +188,24 @@ export function useAuthDemo() {
     }));
   }
 
+  async function denyAction(detail: string) {
+    if (!demo.state) {
+      return;
+    }
+
+    const nextState = await recordAuthorizationDenied(demo.state, detail);
+    setDemo((current) => ({
+      ...current,
+      loginStatus: detail,
+      state: nextState,
+      snapshot: readTotpSnapshot(nextState),
+    }));
+  }
+
   return {
     ...demo,
     availableRoles: AUTH_ROLES,
+    denyAction,
     generateHotpCode,
     rotateOtpSecret,
     runInvalidLogin,

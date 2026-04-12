@@ -13,6 +13,7 @@ import {
   type NetworkStatus,
 } from '@/src/features/dashboard/dashboard-api';
 import { useBleScanner } from '@/src/features/ble/use-ble-scanner';
+import { useMeshDemo } from '@/src/features/mesh/use-mesh-demo';
 import { useWifiDirect } from '@/src/features/wifi-direct/use-wifi-direct';
 import { palette } from '@/src/theme/palette';
 
@@ -20,6 +21,7 @@ export default function NetworkScreen() {
   const [network, setNetwork] = useState<NetworkStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ble = useBleScanner();
+  const mesh = useMeshDemo();
   const wifiDirect = useWifiDirect();
 
   useEffect(() => {
@@ -235,6 +237,121 @@ export default function NetworkScreen() {
 
       <AnimatedPanel index={7}>
         <SectionCard
+          eyebrow="Module 3"
+          title="Store-and-forward mesh relay"
+          description="This demo uses an encrypted envelope from Device A to Device C via Device B. It supports offline relay pause/resume, TTL, dedupe, automatic relay role switching, and packet inspection."
+        >
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <ActionChip label="Create A → B → C" onPress={mesh.createRelayMessage} tone="primary" />
+            <ActionChip label="Relay Next Hop" onPress={mesh.relayNextHop} />
+            <ActionChip label="B Offline" onPress={() => mesh.setRelayOnline(false)} tone="danger" />
+            <ActionChip label="B Online" onPress={() => mesh.setRelayOnline(true)} />
+            <ActionChip label="Reset Mesh" onPress={mesh.resetMeshDemo} />
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <ActionChip label="Relay Battery 20%" onPress={() => mesh.changeRelayTelemetry({ battery: 20 })} />
+            <ActionChip label="Relay Battery 85%" onPress={() => mesh.changeRelayTelemetry({ battery: 85 })} />
+            <ActionChip label="Weak Signal" onPress={() => mesh.changeRelayTelemetry({ signal: 35 })} />
+            <ActionChip label="Strong Signal" onPress={() => mesh.changeRelayTelemetry({ signal: 90 })} />
+          </View>
+        </SectionCard>
+      </AnimatedPanel>
+
+      <AnimatedPanel index={8}>
+        <SectionCard
+          eyebrow="Mesh Nodes"
+          title="Automatic client / relay roles"
+          description="Role assignment is recalculated from battery, signal strength, and proximity. Changes are logged automatically."
+        >
+          <View style={{ gap: 12 }}>
+            {mesh.nodes.map((node) => (
+              <View
+                key={node.deviceId}
+                style={{
+                  gap: 8,
+                  borderRadius: 22,
+                  borderCurve: 'continuous',
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                  backgroundColor: palette.shell,
+                  padding: 14,
+                }}
+              >
+                <Text selectable style={{ color: palette.textPrimary, fontWeight: '800' }}>
+                  {node.deviceLabel}
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  <StatusPill label={node.role} tone={node.role === 'relay' ? 'info' : 'neutral'} />
+                  <StatusPill label={node.online ? 'Online' : 'Offline'} tone={node.online ? 'success' : 'alert'} />
+                </View>
+                <InfoRow label="Battery" value={`${node.telemetry.batteryPercent}%`} />
+                <InfoRow label="Signal" value={`${node.telemetry.signalStrength}`} />
+                <InfoRow label="Proximity" value={`${node.telemetry.proximityScore}`} />
+              </View>
+            ))}
+          </View>
+        </SectionCard>
+      </AnimatedPanel>
+
+      {mesh.envelopes.length > 0 ? (
+        <AnimatedPanel index={9}>
+          <SectionCard
+            eyebrow="Relay Envelope"
+            title="Encrypted packet state"
+            description="Relay node B only sees ciphertext, nonce, TTL, and route metadata. Recipient C can decrypt."
+          >
+            <View style={{ gap: 10 }}>
+              {mesh.envelopes.map((envelope) => (
+                <View key={envelope.envelopeId} style={{ gap: 10 }}>
+                  <InfoRow label="Status" value={envelope.status} />
+                  <InfoRow label="TTL hops" value={String(envelope.ttlHops)} />
+                  <InfoRow label="Next hop" value={envelope.nextHopId ?? 'none'} />
+                  <InfoRow label="Relay path" value={envelope.relayPath.join(' -> ')} />
+                  <InfoRow label="Dedupe key" value={`${envelope.dedupeKey.slice(0, 12)}...`} />
+                  <InfoRow label="Ciphertext" value={`${envelope.ciphertextHex.slice(0, 24)}...`} />
+                </View>
+              ))}
+            </View>
+          </SectionCard>
+        </AnimatedPanel>
+      ) : null}
+
+      {mesh.packetInspection ? (
+        <AnimatedPanel index={10}>
+          <SectionCard
+            eyebrow="Packet Inspection"
+            title="Relay cannot read payload"
+            description="This is the explicit M3.3 proof. Relay B cannot decrypt the payload, while recipient C can."
+          >
+            <View style={{ gap: 10 }}>
+              <InfoRow label="Relay readable?" value={mesh.packetInspection.relayCanRead ? 'Yes' : 'No'} />
+              <InfoRow label="Relay preview" value={mesh.packetInspection.relayPreview} />
+              <InfoRow label="Recipient preview" value={mesh.packetInspection.recipientPreview} />
+            </View>
+          </SectionCard>
+        </AnimatedPanel>
+      ) : null}
+
+      {mesh.events.length > 0 ? (
+        <AnimatedPanel index={11}>
+          <SectionCard
+            eyebrow="Mesh Log"
+            title="Relay and role-switch events"
+            description="Use this log to narrate offline relay pause/resume and automatic role switching."
+          >
+            <View style={{ gap: 10 }}>
+              {mesh.events.map((event) => (
+                <Text key={`${event.timestamp}-${event.detail}`} selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
+                  [{event.type}] {event.detail}
+                </Text>
+              ))}
+            </View>
+          </SectionCard>
+        </AnimatedPanel>
+      ) : null}
+
+      <AnimatedPanel index={12}>
+        <SectionCard
           eyebrow="Native BLE"
           title="Discovered nearby devices"
           description="This only proves scanning and discovery in a development build. It does not yet prove full sync transport."
@@ -271,7 +388,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={8}>
+      <AnimatedPanel index={13}>
         <SectionCard
           eyebrow="Topology"
           title="Relief nodes in the current scenario"
