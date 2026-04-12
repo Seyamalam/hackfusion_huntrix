@@ -1,0 +1,437 @@
+import { useEffect, useState } from "react";
+import {
+  CircleMarker,
+  MapContainer,
+  Marker,
+  Pane,
+  Polyline,
+  Popup,
+  TileLayer,
+  Tooltip,
+} from "react-leaflet";
+import L, { type DivIcon } from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+import { fetchDashboardSnapshot, getApiBaseUrlForDisplay, readCachedSnapshot } from "./api";
+import type { DashboardSnapshot, Edge, Graph, LinkType, RoutePreview } from "./types";
+
+const POLL_INTERVAL_MS = 8000;
+const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+type VehiclePosition = {
+  route: RoutePreview;
+  label: string;
+  lat: number;
+  lng: number;
+  progressPct: number;
+};
+
+const edgeStroke: Record<LinkType, string> = {
+  road: "#f7b955",
+  waterway: "#4fc0ff",
+  airway: "#95a4ff",
+};
+
+const routeStroke: Record<string, string> = {
+  truck: "#ff8d3b",
+  speedboat: "#18d4d4",
+  drone: "#e88cff",
+};
+
+const nodeFill: Record<string, string> = {
+  central_command: "#f9f2c2",
+  supply_drop: "#9ad4ff",
+  relief_camp: "#ffb0aa",
+  hospital: "#e2c7ff",
+  waypoint: "#a2f0bf",
+};
+
+function createVehicleIcon(label: string, color: string): DivIcon {
+  return L.divIcon({
+    className: "vehicle-marker-shell",
+    html: `<div class="vehicle-marker" style="--vehicle-color:${color}"><span>${label}</span></div>`,
+    iconSize: [54, 54],
+    iconAnchor: [27, 27],
+  });
+}
+
+function App() {
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(() => readCachedSnapshot());
+  const [error, setError] = useState<string | null>(null);
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refresh() {
+      try {
+        const next = await fetchDashboardSnapshot();
+        if (cancelled) {
+          return;
+        }
+        setSnapshot(next);
+        setError(null);
+        setIsLive(true);
+      } catch (fetchError) {
+        if (cancelled) {
+          return;
+        }
+        setError(fetchError instanceof Error ? fetchError.message : "Live refresh failed");
+        setIsLive(false);
+      }
+    }
+
+    void refresh();
+    const handle = window.setInterval(() => {
+      void refresh();
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(handle);
+    };
+  }, []);
+
+  if (!snapshot) {
+    return (
+      <main className="shell shell-empty">
+        <section className="empty-card">
+          <p className="eyebrow">Huntrix Delta</p>
+          <h1>Route Deck is waiting for the live graph.</h1>
+          <p>
+            Start the Go API on <code>{getApiBaseUrlForDisplay()}</code>, then refresh this page.
+          </p>
+          {error ? <p className="error-copy">{error}</p> : null}
+        </section>
+      </main>
+    );
+  }
+
+  const center = computeMapCenter(snapshot.graph);
+  const vehiclePositions = deriveVehiclePositions(snapshot.graph, snapshot.summary.route_previews);
+  const blockedEdges = snapshot.graph.edges.filter((edge) => edge.is_flooded);
+  const openEdges = snapshot.graph.edges.filter((edge) => !edge.is_flooded);
+
+  return (
+    <main className="shell">
+      <section className="hero">
+        <div>
+          <p className="eyebrow">M4.4 Route Deck</p>
+          <h1>Live flood logistics on one map.</h1>
+          <p className="hero-copy">
+            Road, waterway, and airway corridors update against the live graph feed. Routes,
+            vehicle markers, and failed edges refresh automatically for the judge demo.
+          </p>
+        </div>
+        <div className="hero-meta">
+          <StatusBadge label={isLive ? "Live Feed" : "Cached Snapshot"} tone={isLive ? "good" : "warn"} />
+          <div className="meta-stack">
+            <span>{snapshot.graph.metadata.scenario}</span>
+            <span>{snapshot.graph.metadata.region}</span>
+            <span>API: {getApiBaseUrlForDisplay()}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="dashboard-grid">
+        <article className="panel map-panel">
+          <div className="panel-header">
+            <div>
+              <p className="panel-kicker">Operational Map</p>
+              <h2>Active routes, failed links, and moving fleet markers</h2>
+            </div>
+            <div className="legend">
+              <LegendSwatch label="Road" color={edgeStroke.road} />
+              <LegendSwatch label="Waterway" color={edgeStroke.waterway} />
+              <LegendSwatch label="Airway" color={edgeStroke.airway} />
+              <LegendSwatch label="Failed Edge" color="#ff5b6d" />
+            </div>
+          </div>
+          <div className="map-frame">
+            <MapContainer center={center} zoom={10} scrollWheelZoom className="leaflet-root">
+              <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
+
+              <Pane name="edges" style={{ zIndex: 300 }}>
+                {openEdges.map((edge) => (
+                  <Polyline
+                    key={edge.id}
+                    positions={edgeToPolyline(snapshot.graph, edge)}
+                    pathOptions={{
+                      color: edgeStroke[edge.type],
+                      weight: 4,
+                      opacity: 0.5,
+                    }}
+                  />
+                ))}
+                {blockedEdges.map((edge) => (
+                  <Polyline
+                    key={edge.id}
+                    positions={edgeToPolyline(snapshot.graph, edge)}
+                    pathOptions={{
+                      color: "#ff5b6d",
+                      weight: 6,
+                      opacity: 0.9,
+                      dashArray: "10 10",
+                    }}
+                  />
+                ))}
+              </Pane>
+
+              <Pane name="routes" style={{ zIndex: 450 }}>
+                {snapshot.summary.route_previews.map((route) => (
+                  <Polyline
+                    key={`${route.vehicle}-${route.source}-${route.target}`}
+                    positions={routeToPolyline(snapshot.graph, route)}
+                    pathOptions={{
+                      color: routeStroke[route.vehicle],
+                      weight: 8,
+                      opacity: 0.95,
+                    }}
+                  >
+                    <Tooltip sticky>{`${route.vehicle} ${route.source} -> ${route.target}`}</Tooltip>
+                  </Polyline>
+                ))}
+              </Pane>
+
+              <Pane name="nodes" style={{ zIndex: 500 }}>
+                {snapshot.graph.nodes.map((node) => (
+                  <CircleMarker
+                    key={node.id}
+                    center={[node.lat, node.lng]}
+                    radius={9}
+                    pathOptions={{
+                      color: "#10181f",
+                      weight: 2,
+                      fillColor: nodeFill[node.type] ?? "#f6f4eb",
+                      fillOpacity: 1,
+                    }}
+                  >
+                    <Tooltip direction="top" offset={[0, -8]} permanent>
+                      {node.id}
+                    </Tooltip>
+                    <Popup>
+                      <strong>{node.name}</strong>
+                      <br />
+                      {node.type}
+                    </Popup>
+                  </CircleMarker>
+                ))}
+              </Pane>
+
+              <Pane name="vehicles" style={{ zIndex: 700 }}>
+                {vehiclePositions.map((vehicle) => (
+                  <Marker
+                    key={`${vehicle.route.vehicle}-${vehicle.label}`}
+                    position={[vehicle.lat, vehicle.lng]}
+                    icon={createVehicleIcon(vehicle.label, routeStroke[vehicle.route.vehicle])}
+                  >
+                    <Popup>
+                      <strong>{vehicle.label}</strong>
+                      <br />
+                      Vehicle: {vehicle.route.vehicle}
+                      <br />
+                      Route progress: {vehicle.progressPct}%
+                    </Popup>
+                  </Marker>
+                ))}
+              </Pane>
+            </MapContainer>
+          </div>
+          <p className="footnote">
+            OSM tiles are cached by the service worker after first load, so the map can survive
+            brief disconnects during the demo.
+          </p>
+        </article>
+
+        <aside className="side-column">
+          <article className="panel metrics-panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Situation</p>
+                <h2>Command metrics</h2>
+              </div>
+              <span className="timestamp">{formatTimestamp(snapshot.fetchedAt)}</span>
+            </div>
+            <div className="metric-grid">
+              <MetricCard label="Nodes" value={snapshot.summary.node_count} />
+              <MetricCard label="Edges" value={snapshot.summary.edge_count} />
+              <MetricCard label="Blocked" value={snapshot.summary.blocked_edge_count} tone="danger" />
+              <MetricCard label="Routes" value={snapshot.summary.route_previews.length} tone="good" />
+            </div>
+            {error ? <p className="warning-banner">Live refresh error: {error}</p> : null}
+          </article>
+
+          <article className="panel routes-panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Routes</p>
+                <h2>Fleet lanes</h2>
+              </div>
+            </div>
+            <div className="route-list">
+              {snapshot.summary.route_previews.map((route) => (
+                <div className="route-card" key={`${route.vehicle}-${route.source}-${route.target}`}>
+                  <div className="route-topline">
+                    <span className="vehicle-pill" data-vehicle={route.vehicle}>
+                      {route.vehicle}
+                    </span>
+                    <span>{route.total_mins} min</span>
+                  </div>
+                  <strong>{route.source} {"->"} {route.target}</strong>
+                  <p>{route.legs.map((leg) => `${leg.source} -> ${leg.target}`).join(" / ")}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="panel routes-panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Failures</p>
+                <h2>Blocked overlays</h2>
+              </div>
+            </div>
+            <div className="failure-list">
+              {blockedEdges.length === 0 ? (
+                <p className="muted-copy">No flooded edges in the current snapshot.</p>
+              ) : (
+                blockedEdges.map((edge) => (
+                  <div className="failure-card" key={edge.id}>
+                    <span>{edge.id}</span>
+                    <strong>
+                      {edge.source} {"->"} {edge.target}
+                    </strong>
+                    <p>{edge.type} marked impassable</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </article>
+        </aside>
+      </section>
+    </main>
+  );
+}
+
+function computeMapCenter(graph: Graph): [number, number] {
+  if (graph.nodes.length === 0) {
+    return [24.8949, 91.8687];
+  }
+
+  const lat = graph.nodes.reduce((sum, node) => sum + node.lat, 0) / graph.nodes.length;
+  const lng = graph.nodes.reduce((sum, node) => sum + node.lng, 0) / graph.nodes.length;
+  return [lat, lng];
+}
+
+function edgeToPolyline(graph: Graph, edge: Edge): [number, number][] {
+  const source = graph.nodes.find((node) => node.id === edge.source);
+  const target = graph.nodes.find((node) => node.id === edge.target);
+  if (!source || !target) {
+    return [];
+  }
+
+  return [
+    [source.lat, source.lng],
+    [target.lat, target.lng],
+  ];
+}
+
+function routeToPolyline(graph: Graph, route: RoutePreview): [number, number][] {
+  const points: [number, number][] = [];
+  for (const leg of route.legs) {
+    const segment = edgeToPolyline(graph, {
+      id: leg.edgeId ?? leg.edge_id ?? `${leg.source}-${leg.target}`,
+      source: leg.source,
+      target: leg.target,
+      type: leg.linkType ?? leg.link_type ?? "road",
+      base_weight_mins: leg.weightMins ?? leg.weight_mins ?? 0,
+      is_flooded: false,
+    });
+
+    if (segment.length === 0) {
+      continue;
+    }
+
+    if (points.length === 0) {
+      points.push(...segment);
+      continue;
+    }
+
+    points.push(segment[1]);
+  }
+
+  return points;
+}
+
+function deriveVehiclePositions(graph: Graph, routes: RoutePreview[]): VehiclePosition[] {
+  return routes
+    .map((route) => {
+      const polyline = routeToPolyline(graph, route);
+      if (polyline.length < 2) {
+        return null;
+      }
+
+      const now = Date.now() / 1000;
+      const offset = route.vehicle === "truck" ? 0.21 : route.vehicle === "speedboat" ? 0.61 : 0.85;
+      const progressPct = Math.floor(((now / 18 + offset) % 1) * 100);
+      const progress = progressPct / 100;
+      const start = polyline[0];
+      const end = polyline[polyline.length - 1];
+
+      return {
+        route,
+        label: route.vehicle === "truck" ? "TRK" : route.vehicle === "speedboat" ? "SPB" : "DRN",
+        lat: start[0] + (end[0] - start[0]) * progress,
+        lng: start[1] + (end[1] - start[1]) * progress,
+        progressPct,
+      } satisfies VehiclePosition;
+    })
+    .filter((vehicle): vehicle is VehiclePosition => vehicle !== null);
+}
+
+function MetricCard({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  tone?: "neutral" | "good" | "danger";
+}) {
+  return (
+    <div className="metric-card" data-tone={tone}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function LegendSwatch({ label, color }: { label: string; color: string }) {
+  return (
+    <span className="legend-swatch">
+      <i style={{ backgroundColor: color }} />
+      {label}
+    </span>
+  );
+}
+
+function StatusBadge({ label, tone }: { label: string; tone: "good" | "warn" }) {
+  return (
+    <span className="status-badge" data-tone={tone}>
+      {label}
+    </span>
+  );
+}
+
+function formatTimestamp(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(value));
+}
+
+export default App;

@@ -80,6 +80,21 @@ $env:EXPO_PUBLIC_API_BASE_URL="http://YOUR_COMPUTER_LAN_IP:8080"
 npx expo start --dev-client
 ```
 
+### Route Dashboard
+```bash
+cd apps/dashboard
+bun install
+bun run dev
+bun run build
+```
+
+If the dashboard is not on the same machine as the Go API, set the backend host explicitly:
+```bash
+cd apps/dashboard
+$env:VITE_API_BASE_URL="http://YOUR_COMPUTER_LAN_IP:8080"
+bun run dev
+```
+
 ### Go Core
 ```bash
 go test ./services/core/...
