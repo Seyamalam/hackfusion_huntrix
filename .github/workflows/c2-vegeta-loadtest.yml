@@ -1,0 +1,100 @@
+name: C2 Vegeta Load Test
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/c2-vegeta-loadtest.yml"
+      - "services/core/**"
+      - "go.mod"
+      - "go.sum"
+
+jobs:
+  loadtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build API binary
+        run: |
+          mkdir -p .tmp
+          go build -o .tmp/api ./services/core/cmd/api
+
+      - name: Install Vegeta
+        run: go install github.com/tsenart/vegeta@latest
+
+      - name: Start API
+        run: |
+          ./.tmp/api > api.log 2>&1 &
+          echo $! > api.pid
+
+      - name: Wait for health endpoint
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API did not become healthy in time"
+          cat api.log || true
+          exit 1
+
+      - name: Run Vegeta attack
+        run: |
+          mkdir -p docs/compliance
+          printf 'GET http://127.0.0.1:8080/healthz\n' > vegeta-targets.txt
+          "$(go env GOPATH)/bin/vegeta" attack \
+            -targets=vegeta-targets.txt \
+            -rate=10000/s \
+            -duration=10s \
+            -workers=512 \
+            -max-workers=1024 \
+            -connections=2048 \
+            -output=docs/compliance/c2_vegeta_results.bin
+
+      - name: Generate Vegeta report
+        run: |
+          {
+            echo "# C2 Load Test"
+            echo
+            echo "Tool: vegeta"
+            echo
+            echo "Runner: ubuntu-latest"
+            echo
+            echo "Target: http://127.0.0.1:8080/healthz"
+            echo
+            echo "Rate: 10000/s"
+            echo
+            echo "Duration: 10s"
+            echo
+            echo "Report:"
+            echo
+            echo '```text'
+            "$(go env GOPATH)/bin/vegeta" report -type=text docs/compliance/c2_vegeta_results.bin
+            echo '```'
+          } > docs/compliance/C2-loadtest-ci.md
+
+      - name: Upload load test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: c2-vegeta-loadtest
+          path: |
+            docs/compliance/c2_vegeta_results.bin
+            docs/compliance/C2-loadtest-ci.md
+            api.log
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f api.pid ]; then
+            kill "$(cat api.pid)" || true
+          fi
