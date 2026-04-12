@@ -14,6 +14,11 @@ import {
   type SyncHandshake,
   type SyncSessionSummary,
 } from '@/src/features/sync-demo/sync-protocol';
+import {
+  decodePeerPacket,
+  encodeDeltaPacket,
+  encodeHandshakePacket,
+} from '@/src/features/sync-demo/sync-protobuf-wire';
 import type { PodReceipt } from '@/src/features/pod/pod-types';
 import {
   readLocalInventory,
@@ -172,7 +177,7 @@ export function useWifiDirect() {
         (message) => {
           handleIncomingPayload(message.fromAddress, message.message);
         },
-        { useJson: true },
+        {},
       );
 
       setState((current) => ({
@@ -246,7 +251,7 @@ export function useWifiDirect() {
       return;
     }
 
-    const payload = JSON.stringify(
+    const payload = encodeHandshakePacket(
       buildHandshake(state.replicaId, state.localInventory.vector_clock),
     );
 
@@ -283,7 +288,7 @@ export function useWifiDirect() {
     const targetReplica = state.peerClocks[deviceAddress]?.replicaId ?? state.lastHandshakeReplica ?? deviceAddress;
     const knownClock = state.peerClocks[deviceAddress]?.knownClock ?? {};
     const changedRecords = filterChangedRecords([state.localInventory], knownClock);
-    const payload = JSON.stringify(
+    const payload = encodeDeltaPacket(
       buildDeltaBundle(state.replicaId, targetReplica, changedRecords, state.deliveryReceipts),
     );
 
@@ -294,9 +299,9 @@ export function useWifiDirect() {
         ...current,
         error: null,
         lastPeerAddress: deviceAddress,
-        messages: [`to ${deviceAddress}: delta bundle sent`, ...current.messages].slice(0, 8),
+        messages: [`to ${deviceAddress}: protobuf delta bundle sent`, ...current.messages].slice(0, 8),
         sessionSummary: {
-          bytes_estimate: payload.length,
+          bytes_estimate: payload.length / 2,
           conflict_count: 0,
           merged_count: 0,
           record_count: changedRecords.length,
@@ -337,7 +342,7 @@ export function useWifiDirect() {
   }
 
   function handleIncomingPayload(fromAddress: string, payload: unknown) {
-    if (!payload || typeof payload !== 'object' || !('kind' in payload)) {
+    if (typeof payload !== 'string') {
       setState((current) => ({
         ...current,
         messages: [`from ${fromAddress}: received unsupported payload`, ...current.messages].slice(0, 8),
@@ -345,9 +350,17 @@ export function useWifiDirect() {
       return;
     }
 
-    const kind = String((payload as { kind: string }).kind);
-    if (kind === 'sync-handshake') {
-      const handshake = payload as SyncHandshake;
+    const decoded = decodePeerPacket(payload);
+    if (!decoded) {
+      setState((current) => ({
+        ...current,
+        messages: [`from ${fromAddress}: invalid protobuf packet`, ...current.messages].slice(0, 8),
+      }));
+      return;
+    }
+
+    if (decoded.kind === 'handshake') {
+      const handshake: SyncHandshake = decoded.handshake;
       setState((current) => {
         const nextPeerClocks = {
           ...current.peerClocks,
@@ -363,7 +376,7 @@ export function useWifiDirect() {
           lastPeerAddress: fromAddress,
           peerClocks: nextPeerClocks,
           messages: [
-            `from ${fromAddress}: handshake from ${handshake.replica_id}`,
+            `from ${fromAddress}: protobuf handshake from ${handshake.replica_id}`,
             ...current.messages,
           ].slice(0, 8),
         };
@@ -371,8 +384,8 @@ export function useWifiDirect() {
       return;
     }
 
-    if (kind === 'sync-delta') {
-      const bundle = payload as SyncDeltaBundle;
+    if (decoded.kind === 'delta') {
+      const bundle: SyncDeltaBundle = decoded.bundle;
       setState((current) => {
         const result = applyDeltaBundle(current.localInventory, bundle, current.deliveryReceipts);
         const nextPeerClocks = {
@@ -392,7 +405,7 @@ export function useWifiDirect() {
           lastPeerAddress: fromAddress,
           localInventory: result.item,
           messages: [
-            `from ${fromAddress}: delta bundle applied`,
+            `from ${fromAddress}: protobuf delta bundle applied`,
             ...current.messages,
           ].slice(0, 8),
           peerClocks: nextPeerClocks,
@@ -401,11 +414,6 @@ export function useWifiDirect() {
       });
       return;
     }
-
-    setState((current) => ({
-      ...current,
-      messages: [`from ${fromAddress}: unknown kind ${kind}`, ...current.messages].slice(0, 8),
-    }));
   }
 
   async function mutateInventory(deltaQuantity: number) {

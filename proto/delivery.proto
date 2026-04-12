@@ -46,6 +46,34 @@ message DeliveryReceipt {
   bytes sender_signature = 8;
 }
 
+message ProofOfDeliveryResponse {
+  ProofOfDeliveryChallenge challenge = 1;
+  string recipient_node_id = 2;
+  bytes recipient_public_key = 3;
+  string recipient_nonce = 4;
+  uint64 recipient_timestamp_unix_ms = 5;
+  bytes recipient_signature = 6;
+}
+
+message DeliveryReceiptChainEntry {
+  string receipt_id = 1;
+  string delivery_id = 2;
+  string sender_node_id = 3;
+  string recipient_node_id = 4;
+  bytes sender_public_key = 5;
+  bytes recipient_public_key = 6;
+  string challenge_nonce = 7;
+  string recipient_nonce = 8;
+  uint64 challenge_timestamp_unix_ms = 9;
+  uint64 recipient_timestamp_unix_ms = 10;
+  bytes payload_hash = 11;
+  bytes sender_signature = 12;
+  bytes recipient_signature = 13;
+  bytes prev_receipt_hash = 14;
+  bytes receipt_hash = 15;
+  uint64 verified_at_unix_ms = 16;
+}
+
 message ConfirmPodRequest {
   ProofOfDeliveryChallenge challenge = 1;
   DeliveryReceipt receipt = 2;

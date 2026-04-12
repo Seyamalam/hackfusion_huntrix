@@ -1,0 +1,170 @@
+syntax = "proto3";
+
+package digitaldelta.v1;
+
+option go_package = "github.com/Seyamalam/hackfusion_huntrix/proto/gen/go/digitaldeltav1;digitaldeltav1";
+
+import "common.proto";
+
+message PriorityTierDefinition {
+  DeliveryPriority priority = 1;
+  string label = 2;
+  uint32 sla_hours = 3;
+  string last_writer = 4;
+  uint64 updated_at_unix_ms = 5;
+  repeated VectorClockEntry vector_clock = 6;
+}
+
+message CargoState {
+  string cargo_id = 1;
+  string name = 2;
+  DeliveryPriority priority = 3;
+  uint32 sla_hours = 4;
+  uint32 payload_kg = 5;
+  string mission_id = 6;
+  string destination_node_id = 7;
+  string safe_waypoint_node_id = 8;
+  string status = 9;
+  string last_writer = 10;
+  uint64 updated_at_unix_ms = 11;
+  repeated VectorClockEntry vector_clock = 12;
+}
+
+message SlaBreachPrediction {
+  string cargo_id = 1;
+  string name = 2;
+  DeliveryPriority priority = 3;
+  uint32 base_eta_mins = 4;
+  uint32 current_eta_mins = 5;
+  uint32 slowdown_pct = 6;
+  uint32 sla_window_mins = 7;
+  bool will_breach = 8;
+  bool requires_review = 9;
+  string recommended_track = 10;
+}
+
+message AutonomousPreemptionDecision {
+  bool triggered = 1;
+  string action = 2;
+  string safe_waypoint_node_id = 3;
+  repeated string drop_cargo_ids = 4;
+  repeated string keep_cargo_ids = 5;
+  string reroute_vehicle = 6;
+  uint32 current_eta_mins = 7;
+  uint32 reroute_eta_mins = 8;
+  string rationale = 9;
+  string audit_trail_anchor = 10;
+}
+
+message RiskFeatureSnapshot {
+  string edge_id = 1;
+  LinkType edge_type = 2;
+  double cumulative_rainfall_mm = 3;
+  double rainfall_rate_change = 4;
+  double elevation_m = 5;
+  double soil_saturation_proxy = 6;
+  uint64 prediction_unix_ms = 7;
+}
+
+message RiskContribution {
+  string feature_name = 1;
+  double feature_contribution = 2;
+}
+
+message EdgeRiskPrediction {
+  string edge_id = 1;
+  double probability = 2;
+  bool high_risk = 3;
+  uint64 prediction_unix_ms = 4;
+  RiskFeatureSnapshot feature_snapshot = 5;
+  repeated RiskContribution contributions = 6;
+  uint32 penalized_weight_mins = 7;
+}
+
+message PredictiveRerouteRecommendation {
+  VehicleType vehicle_type = 1;
+  string source_node_id = 2;
+  string target_node_id = 3;
+  uint32 baseline_eta_mins = 4;
+  uint32 proactive_eta_mins = 5;
+  bool changed = 6;
+  repeated string avoided_edges = 7;
+  string message = 8;
+}
+
+message ReachabilityZone {
+  string node_id = 1;
+  string name = 2;
+  GeoPoint location = 3;
+  string reason = 4;
+  bool truck_reachable = 5;
+  bool boat_reachable = 6;
+  bool drone_reachable = 7;
+}
+
+message ReachabilityReport {
+  string mode = 1;
+  repeated string blocked_edges = 2;
+  repeated ReachabilityZone drone_required_zones = 3;
+}
+
+message RendezvousScenario {
+  string scenario_id = 1;
+  string label = 2;
+  string boat_node_id = 3;
+  string drone_base_node_id = 4;
+  string destination_node_id = 5;
+  string best_meeting_node_id = 6;
+  GeoPoint best_meeting_location = 7;
+  uint32 boat_travel_mins = 8;
+  uint32 drone_travel_mins = 9;
+  uint32 drone_final_leg_mins = 10;
+  uint32 combined_mission_mins = 11;
+  double drone_range_km = 12;
+  uint32 payload_kg = 13;
+  bool feasible = 14;
+  string explanation = 15;
+}
+
+message LedgerAuditEntry {
+  string entry_id = 1;
+  string event_type = 2;
+  string actor = 3;
+  string detail = 4;
+  uint64 created_at_unix_ms = 5;
+  string hash_hex = 6;
+}
+
+message HandoffSimulation {
+  string scenario_label = 1;
+  string boat_arrival_node_id = 2;
+  string pod_receipt_id = 3;
+  string boat_signature_hash = 4;
+  string drone_countersign_hash = 5;
+  string ownership_before = 6;
+  string ownership_after = 7;
+  string transferred_cargo_id = 8;
+  repeated LedgerAuditEntry ledger_history = 9;
+}
+
+message MeshThrottleRule {
+  string rule = 1;
+  uint32 reduction_pct = 2;
+  bool applied = 3;
+  string reason = 4;
+}
+
+message MeshThrottleSimulation {
+  uint32 battery_pct = 1;
+  string accelerometer_state = 2;
+  double proximity_meters = 3;
+  double base_interval_seconds = 4;
+  double adjusted_interval_seconds = 5;
+  uint32 duration_minutes = 6;
+  uint32 baseline_broadcasts = 7;
+  uint32 adjusted_broadcasts = 8;
+  double baseline_battery_drain_pct = 9;
+  double adjusted_battery_drain_pct = 10;
+  double battery_savings_pct = 11;
+  repeated MeshThrottleRule applied_rules = 12;
+}

@@ -88,7 +88,7 @@ try {
     --go_opt=module=github.com/Seyamalam/hackfusion_huntrix `
     --go-grpc_out=. `
     --go-grpc_opt=module=github.com/Seyamalam/hackfusion_huntrix `
-    proto/common.proto proto/sync.proto proto/routing.proto proto/delivery.proto
+    proto/common.proto proto/sync.proto proto/routing.proto proto/delivery.proto proto/security.proto proto/analytics.proto
   if ($LASTEXITCODE -ne 0) {
     throw "Go protobuf/gRPC generation failed."
   }
@@ -98,7 +98,7 @@ try {
     --plugin=protoc-gen-es=$esPlugin `
     --es_out=$tsOutDir `
     --es_opt=target=ts `
-    proto/common.proto proto/sync.proto proto/routing.proto proto/delivery.proto
+    proto/common.proto proto/sync.proto proto/routing.proto proto/delivery.proto proto/security.proto proto/analytics.proto
   if ($LASTEXITCODE -ne 0) {
     throw "TypeScript protobuf generation failed."
   }

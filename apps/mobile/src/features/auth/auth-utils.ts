@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { hmac } from '@noble/hashes/hmac.js';
-import { sha1 } from '@noble/hashes/legacy.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { ed25519 } from '@noble/curves/ed25519.js';
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -72,7 +72,7 @@ export function generateHotp(secretBase32: string, counter: number, digits = 6) 
     tempCounter = Math.floor(tempCounter / 256);
   }
 
-  const digest = hmac(sha1, secret, counterBytes);
+  const digest = hmac(sha256, secret, counterBytes);
   const binary = dynamicTruncate(digest);
   const otp = binary % 10 ** digits;
   return otp.toString().padStart(digits, '0');

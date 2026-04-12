@@ -173,6 +173,166 @@ func (x *SyncOperation) GetMetadata() *ReplicaMetadata {
 	return nil
 }
 
+type InventoryRecord struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ItemId          string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Quantity        uint32                 `protobuf:"varint,3,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	Priority        DeliveryPriority       `protobuf:"varint,4,opt,name=priority,proto3,enum=digitaldelta.v1.DeliveryPriority" json:"priority,omitempty"`
+	LastWriter      string                 `protobuf:"bytes,5,opt,name=last_writer,json=lastWriter,proto3" json:"last_writer,omitempty"`
+	UpdatedAtUnixMs uint64                 `protobuf:"varint,6,opt,name=updated_at_unix_ms,json=updatedAtUnixMs,proto3" json:"updated_at_unix_ms,omitempty"`
+	VectorClock     []*VectorClockEntry    `protobuf:"bytes,7,rep,name=vector_clock,json=vectorClock,proto3" json:"vector_clock,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *InventoryRecord) Reset() {
+	*x = InventoryRecord{}
+	mi := &file_sync_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InventoryRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InventoryRecord) ProtoMessage() {}
+
+func (x *InventoryRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_sync_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InventoryRecord.ProtoReflect.Descriptor instead.
+func (*InventoryRecord) Descriptor() ([]byte, []int) {
+	return file_sync_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *InventoryRecord) GetItemId() string {
+	if x != nil {
+		return x.ItemId
+	}
+	return ""
+}
+
+func (x *InventoryRecord) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *InventoryRecord) GetQuantity() uint32 {
+	if x != nil {
+		return x.Quantity
+	}
+	return 0
+}
+
+func (x *InventoryRecord) GetPriority() DeliveryPriority {
+	if x != nil {
+		return x.Priority
+	}
+	return DeliveryPriority_DELIVERY_PRIORITY_UNSPECIFIED
+}
+
+func (x *InventoryRecord) GetLastWriter() string {
+	if x != nil {
+		return x.LastWriter
+	}
+	return ""
+}
+
+func (x *InventoryRecord) GetUpdatedAtUnixMs() uint64 {
+	if x != nil {
+		return x.UpdatedAtUnixMs
+	}
+	return 0
+}
+
+func (x *InventoryRecord) GetVectorClock() []*VectorClockEntry {
+	if x != nil {
+		return x.VectorClock
+	}
+	return nil
+}
+
+type MeshHandshake struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	DeviceLabel      string                 `protobuf:"bytes,1,opt,name=device_label,json=deviceLabel,proto3" json:"device_label,omitempty"`
+	ReplicaId        string                 `protobuf:"bytes,2,opt,name=replica_id,json=replicaId,proto3" json:"replica_id,omitempty"`
+	LastSyncAtUnixMs uint64                 `protobuf:"varint,3,opt,name=last_sync_at_unix_ms,json=lastSyncAtUnixMs,proto3" json:"last_sync_at_unix_ms,omitempty"`
+	VectorClock      []*VectorClockEntry    `protobuf:"bytes,4,rep,name=vector_clock,json=vectorClock,proto3" json:"vector_clock,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *MeshHandshake) Reset() {
+	*x = MeshHandshake{}
+	mi := &file_sync_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MeshHandshake) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MeshHandshake) ProtoMessage() {}
+
+func (x *MeshHandshake) ProtoReflect() protoreflect.Message {
+	mi := &file_sync_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MeshHandshake.ProtoReflect.Descriptor instead.
+func (*MeshHandshake) Descriptor() ([]byte, []int) {
+	return file_sync_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *MeshHandshake) GetDeviceLabel() string {
+	if x != nil {
+		return x.DeviceLabel
+	}
+	return ""
+}
+
+func (x *MeshHandshake) GetReplicaId() string {
+	if x != nil {
+		return x.ReplicaId
+	}
+	return ""
+}
+
+func (x *MeshHandshake) GetLastSyncAtUnixMs() uint64 {
+	if x != nil {
+		return x.LastSyncAtUnixMs
+	}
+	return 0
+}
+
+func (x *MeshHandshake) GetVectorClock() []*VectorClockEntry {
+	if x != nil {
+		return x.VectorClock
+	}
+	return nil
+}
+
 type RelayEnvelope struct {
 	state                   protoimpl.MessageState `protogen:"open.v1"`
 	EnvelopeId              string                 `protobuf:"bytes,1,opt,name=envelope_id,json=envelopeId,proto3" json:"envelope_id,omitempty"`
@@ -191,7 +351,7 @@ type RelayEnvelope struct {
 
 func (x *RelayEnvelope) Reset() {
 	*x = RelayEnvelope{}
-	mi := &file_sync_proto_msgTypes[2]
+	mi := &file_sync_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -203,7 +363,7 @@ func (x *RelayEnvelope) String() string {
 func (*RelayEnvelope) ProtoMessage() {}
 
 func (x *RelayEnvelope) ProtoReflect() protoreflect.Message {
-	mi := &file_sync_proto_msgTypes[2]
+	mi := &file_sync_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -216,7 +376,7 @@ func (x *RelayEnvelope) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RelayEnvelope.ProtoReflect.Descriptor instead.
 func (*RelayEnvelope) Descriptor() ([]byte, []int) {
-	return file_sync_proto_rawDescGZIP(), []int{2}
+	return file_sync_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RelayEnvelope) GetEnvelopeId() string {
@@ -301,7 +461,7 @@ type SyncBundle struct {
 
 func (x *SyncBundle) Reset() {
 	*x = SyncBundle{}
-	mi := &file_sync_proto_msgTypes[3]
+	mi := &file_sync_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -313,7 +473,7 @@ func (x *SyncBundle) String() string {
 func (*SyncBundle) ProtoMessage() {}
 
 func (x *SyncBundle) ProtoReflect() protoreflect.Message {
-	mi := &file_sync_proto_msgTypes[3]
+	mi := &file_sync_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -326,7 +486,7 @@ func (x *SyncBundle) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncBundle.ProtoReflect.Descriptor instead.
 func (*SyncBundle) Descriptor() ([]byte, []int) {
-	return file_sync_proto_rawDescGZIP(), []int{3}
+	return file_sync_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *SyncBundle) GetBundleId() string {
@@ -367,7 +527,7 @@ type ExchangeBundleRequest struct {
 
 func (x *ExchangeBundleRequest) Reset() {
 	*x = ExchangeBundleRequest{}
-	mi := &file_sync_proto_msgTypes[4]
+	mi := &file_sync_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -379,7 +539,7 @@ func (x *ExchangeBundleRequest) String() string {
 func (*ExchangeBundleRequest) ProtoMessage() {}
 
 func (x *ExchangeBundleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sync_proto_msgTypes[4]
+	mi := &file_sync_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -392,7 +552,7 @@ func (x *ExchangeBundleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExchangeBundleRequest.ProtoReflect.Descriptor instead.
 func (*ExchangeBundleRequest) Descriptor() ([]byte, []int) {
-	return file_sync_proto_rawDescGZIP(), []int{4}
+	return file_sync_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ExchangeBundleRequest) GetTargetReplicaId() string {
@@ -409,6 +569,88 @@ func (x *ExchangeBundleRequest) GetBundle() *SyncBundle {
 	return nil
 }
 
+type PeerSyncPacket struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Payload:
+	//
+	//	*PeerSyncPacket_Handshake
+	//	*PeerSyncPacket_ExchangeBundle
+	Payload       isPeerSyncPacket_Payload `protobuf_oneof:"payload"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeerSyncPacket) Reset() {
+	*x = PeerSyncPacket{}
+	mi := &file_sync_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeerSyncPacket) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeerSyncPacket) ProtoMessage() {}
+
+func (x *PeerSyncPacket) ProtoReflect() protoreflect.Message {
+	mi := &file_sync_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeerSyncPacket.ProtoReflect.Descriptor instead.
+func (*PeerSyncPacket) Descriptor() ([]byte, []int) {
+	return file_sync_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *PeerSyncPacket) GetPayload() isPeerSyncPacket_Payload {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *PeerSyncPacket) GetHandshake() *MeshHandshake {
+	if x != nil {
+		if x, ok := x.Payload.(*PeerSyncPacket_Handshake); ok {
+			return x.Handshake
+		}
+	}
+	return nil
+}
+
+func (x *PeerSyncPacket) GetExchangeBundle() *ExchangeBundleRequest {
+	if x != nil {
+		if x, ok := x.Payload.(*PeerSyncPacket_ExchangeBundle); ok {
+			return x.ExchangeBundle
+		}
+	}
+	return nil
+}
+
+type isPeerSyncPacket_Payload interface {
+	isPeerSyncPacket_Payload()
+}
+
+type PeerSyncPacket_Handshake struct {
+	Handshake *MeshHandshake `protobuf:"bytes,1,opt,name=handshake,proto3,oneof"`
+}
+
+type PeerSyncPacket_ExchangeBundle struct {
+	ExchangeBundle *ExchangeBundleRequest `protobuf:"bytes,2,opt,name=exchange_bundle,json=exchangeBundle,proto3,oneof"`
+}
+
+func (*PeerSyncPacket_Handshake) isPeerSyncPacket_Payload() {}
+
+func (*PeerSyncPacket_ExchangeBundle) isPeerSyncPacket_Payload() {}
+
 type ExchangeBundleResponse struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	ReplicaId            string                 `protobuf:"bytes,1,opt,name=replica_id,json=replicaId,proto3" json:"replica_id,omitempty"`
@@ -421,7 +663,7 @@ type ExchangeBundleResponse struct {
 
 func (x *ExchangeBundleResponse) Reset() {
 	*x = ExchangeBundleResponse{}
-	mi := &file_sync_proto_msgTypes[5]
+	mi := &file_sync_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -433,7 +675,7 @@ func (x *ExchangeBundleResponse) String() string {
 func (*ExchangeBundleResponse) ProtoMessage() {}
 
 func (x *ExchangeBundleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sync_proto_msgTypes[5]
+	mi := &file_sync_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -446,7 +688,7 @@ func (x *ExchangeBundleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExchangeBundleResponse.ProtoReflect.Descriptor instead.
 func (*ExchangeBundleResponse) Descriptor() ([]byte, []int) {
-	return file_sync_proto_rawDescGZIP(), []int{5}
+	return file_sync_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ExchangeBundleResponse) GetReplicaId() string {
@@ -487,7 +729,7 @@ type PullPendingRequest struct {
 
 func (x *PullPendingRequest) Reset() {
 	*x = PullPendingRequest{}
-	mi := &file_sync_proto_msgTypes[6]
+	mi := &file_sync_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -499,7 +741,7 @@ func (x *PullPendingRequest) String() string {
 func (*PullPendingRequest) ProtoMessage() {}
 
 func (x *PullPendingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sync_proto_msgTypes[6]
+	mi := &file_sync_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -512,7 +754,7 @@ func (x *PullPendingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullPendingRequest.ProtoReflect.Descriptor instead.
 func (*PullPendingRequest) Descriptor() ([]byte, []int) {
-	return file_sync_proto_rawDescGZIP(), []int{6}
+	return file_sync_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *PullPendingRequest) GetReplicaId() string {
@@ -538,7 +780,7 @@ type PullPendingResponse struct {
 
 func (x *PullPendingResponse) Reset() {
 	*x = PullPendingResponse{}
-	mi := &file_sync_proto_msgTypes[7]
+	mi := &file_sync_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -550,7 +792,7 @@ func (x *PullPendingResponse) String() string {
 func (*PullPendingResponse) ProtoMessage() {}
 
 func (x *PullPendingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sync_proto_msgTypes[7]
+	mi := &file_sync_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -563,7 +805,7 @@ func (x *PullPendingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullPendingResponse.ProtoReflect.Descriptor instead.
 func (*PullPendingResponse) Descriptor() ([]byte, []int) {
-	return file_sync_proto_rawDescGZIP(), []int{7}
+	return file_sync_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *PullPendingResponse) GetEnvelopes() []*RelayEnvelope {
@@ -592,7 +834,22 @@ const file_sync_proto_rawDesc = "" +
 	"\ventity_type\x18\x02 \x01(\tR\n" +
 	"entityType\x12\x18\n" +
 	"\apayload\x18\x03 \x01(\fR\apayload\x12<\n" +
-	"\bmetadata\x18\x04 \x01(\v2 .digitaldelta.v1.ReplicaMetadataR\bmetadata\"\x9a\x03\n" +
+	"\bmetadata\x18\x04 \x01(\v2 .digitaldelta.v1.ReplicaMetadataR\bmetadata\"\xad\x02\n" +
+	"\x0fInventoryRecord\x12\x17\n" +
+	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
+	"\bquantity\x18\x03 \x01(\rR\bquantity\x12=\n" +
+	"\bpriority\x18\x04 \x01(\x0e2!.digitaldelta.v1.DeliveryPriorityR\bpriority\x12\x1f\n" +
+	"\vlast_writer\x18\x05 \x01(\tR\n" +
+	"lastWriter\x12+\n" +
+	"\x12updated_at_unix_ms\x18\x06 \x01(\x04R\x0fupdatedAtUnixMs\x12D\n" +
+	"\fvector_clock\x18\a \x03(\v2!.digitaldelta.v1.VectorClockEntryR\vvectorClock\"\xc7\x01\n" +
+	"\rMeshHandshake\x12!\n" +
+	"\fdevice_label\x18\x01 \x01(\tR\vdeviceLabel\x12\x1d\n" +
+	"\n" +
+	"replica_id\x18\x02 \x01(\tR\treplicaId\x12.\n" +
+	"\x14last_sync_at_unix_ms\x18\x03 \x01(\x04R\x10lastSyncAtUnixMs\x12D\n" +
+	"\fvector_clock\x18\x04 \x03(\v2!.digitaldelta.v1.VectorClockEntryR\vvectorClock\"\x9a\x03\n" +
 	"\rRelayEnvelope\x12\x1f\n" +
 	"\venvelope_id\x18\x01 \x01(\tR\n" +
 	"envelopeId\x12\x1d\n" +
@@ -618,7 +875,11 @@ const file_sync_proto_rawDesc = "" +
 	"\tenvelopes\x18\x04 \x03(\v2\x1e.digitaldelta.v1.RelayEnvelopeR\tenvelopes\"x\n" +
 	"\x15ExchangeBundleRequest\x12*\n" +
 	"\x11target_replica_id\x18\x01 \x01(\tR\x0ftargetReplicaId\x123\n" +
-	"\x06bundle\x18\x02 \x01(\v2\x1b.digitaldelta.v1.SyncBundleR\x06bundle\"\xd5\x01\n" +
+	"\x06bundle\x18\x02 \x01(\v2\x1b.digitaldelta.v1.SyncBundleR\x06bundle\"\xae\x01\n" +
+	"\x0ePeerSyncPacket\x12>\n" +
+	"\thandshake\x18\x01 \x01(\v2\x1e.digitaldelta.v1.MeshHandshakeH\x00R\thandshake\x12Q\n" +
+	"\x0fexchange_bundle\x18\x02 \x01(\v2&.digitaldelta.v1.ExchangeBundleRequestH\x00R\x0eexchangeBundleB\t\n" +
+	"\apayload\"\xd5\x01\n" +
 	"\x16ExchangeBundleResponse\x12\x1d\n" +
 	"\n" +
 	"replica_id\x18\x01 \x01(\tR\treplicaId\x124\n" +
@@ -647,34 +908,43 @@ func file_sync_proto_rawDescGZIP() []byte {
 	return file_sync_proto_rawDescData
 }
 
-var file_sync_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_sync_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_sync_proto_goTypes = []any{
 	(*ReplicaMetadata)(nil),        // 0: digitaldelta.v1.ReplicaMetadata
 	(*SyncOperation)(nil),          // 1: digitaldelta.v1.SyncOperation
-	(*RelayEnvelope)(nil),          // 2: digitaldelta.v1.RelayEnvelope
-	(*SyncBundle)(nil),             // 3: digitaldelta.v1.SyncBundle
-	(*ExchangeBundleRequest)(nil),  // 4: digitaldelta.v1.ExchangeBundleRequest
-	(*ExchangeBundleResponse)(nil), // 5: digitaldelta.v1.ExchangeBundleResponse
-	(*PullPendingRequest)(nil),     // 6: digitaldelta.v1.PullPendingRequest
-	(*PullPendingResponse)(nil),    // 7: digitaldelta.v1.PullPendingResponse
-	(*VectorClockEntry)(nil),       // 8: digitaldelta.v1.VectorClockEntry
+	(*InventoryRecord)(nil),        // 2: digitaldelta.v1.InventoryRecord
+	(*MeshHandshake)(nil),          // 3: digitaldelta.v1.MeshHandshake
+	(*RelayEnvelope)(nil),          // 4: digitaldelta.v1.RelayEnvelope
+	(*SyncBundle)(nil),             // 5: digitaldelta.v1.SyncBundle
+	(*ExchangeBundleRequest)(nil),  // 6: digitaldelta.v1.ExchangeBundleRequest
+	(*PeerSyncPacket)(nil),         // 7: digitaldelta.v1.PeerSyncPacket
+	(*ExchangeBundleResponse)(nil), // 8: digitaldelta.v1.ExchangeBundleResponse
+	(*PullPendingRequest)(nil),     // 9: digitaldelta.v1.PullPendingRequest
+	(*PullPendingResponse)(nil),    // 10: digitaldelta.v1.PullPendingResponse
+	(*VectorClockEntry)(nil),       // 11: digitaldelta.v1.VectorClockEntry
+	(DeliveryPriority)(0),          // 12: digitaldelta.v1.DeliveryPriority
 }
 var file_sync_proto_depIdxs = []int32{
-	8, // 0: digitaldelta.v1.ReplicaMetadata.vector_clock:type_name -> digitaldelta.v1.VectorClockEntry
-	0, // 1: digitaldelta.v1.SyncOperation.metadata:type_name -> digitaldelta.v1.ReplicaMetadata
-	1, // 2: digitaldelta.v1.SyncBundle.operations:type_name -> digitaldelta.v1.SyncOperation
-	2, // 3: digitaldelta.v1.SyncBundle.envelopes:type_name -> digitaldelta.v1.RelayEnvelope
-	3, // 4: digitaldelta.v1.ExchangeBundleRequest.bundle:type_name -> digitaldelta.v1.SyncBundle
-	2, // 5: digitaldelta.v1.PullPendingResponse.envelopes:type_name -> digitaldelta.v1.RelayEnvelope
-	4, // 6: digitaldelta.v1.SyncService.ExchangeBundle:input_type -> digitaldelta.v1.ExchangeBundleRequest
-	6, // 7: digitaldelta.v1.SyncService.PullPending:input_type -> digitaldelta.v1.PullPendingRequest
-	5, // 8: digitaldelta.v1.SyncService.ExchangeBundle:output_type -> digitaldelta.v1.ExchangeBundleResponse
-	7, // 9: digitaldelta.v1.SyncService.PullPending:output_type -> digitaldelta.v1.PullPendingResponse
-	8, // [8:10] is the sub-list for method output_type
-	6, // [6:8] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	11, // 0: digitaldelta.v1.ReplicaMetadata.vector_clock:type_name -> digitaldelta.v1.VectorClockEntry
+	0,  // 1: digitaldelta.v1.SyncOperation.metadata:type_name -> digitaldelta.v1.ReplicaMetadata
+	12, // 2: digitaldelta.v1.InventoryRecord.priority:type_name -> digitaldelta.v1.DeliveryPriority
+	11, // 3: digitaldelta.v1.InventoryRecord.vector_clock:type_name -> digitaldelta.v1.VectorClockEntry
+	11, // 4: digitaldelta.v1.MeshHandshake.vector_clock:type_name -> digitaldelta.v1.VectorClockEntry
+	1,  // 5: digitaldelta.v1.SyncBundle.operations:type_name -> digitaldelta.v1.SyncOperation
+	4,  // 6: digitaldelta.v1.SyncBundle.envelopes:type_name -> digitaldelta.v1.RelayEnvelope
+	5,  // 7: digitaldelta.v1.ExchangeBundleRequest.bundle:type_name -> digitaldelta.v1.SyncBundle
+	3,  // 8: digitaldelta.v1.PeerSyncPacket.handshake:type_name -> digitaldelta.v1.MeshHandshake
+	6,  // 9: digitaldelta.v1.PeerSyncPacket.exchange_bundle:type_name -> digitaldelta.v1.ExchangeBundleRequest
+	4,  // 10: digitaldelta.v1.PullPendingResponse.envelopes:type_name -> digitaldelta.v1.RelayEnvelope
+	6,  // 11: digitaldelta.v1.SyncService.ExchangeBundle:input_type -> digitaldelta.v1.ExchangeBundleRequest
+	9,  // 12: digitaldelta.v1.SyncService.PullPending:input_type -> digitaldelta.v1.PullPendingRequest
+	8,  // 13: digitaldelta.v1.SyncService.ExchangeBundle:output_type -> digitaldelta.v1.ExchangeBundleResponse
+	10, // 14: digitaldelta.v1.SyncService.PullPending:output_type -> digitaldelta.v1.PullPendingResponse
+	13, // [13:15] is the sub-list for method output_type
+	11, // [11:13] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_sync_proto_init() }
@@ -683,13 +953,17 @@ func file_sync_proto_init() {
 		return
 	}
 	file_common_proto_init()
+	file_sync_proto_msgTypes[7].OneofWrappers = []any{
+		(*PeerSyncPacket_Handshake)(nil),
+		(*PeerSyncPacket_ExchangeBundle)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sync_proto_rawDesc), len(file_sync_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

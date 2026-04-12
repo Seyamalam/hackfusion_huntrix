@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package digitaldelta.v1;
+
+option go_package = "github.com/Seyamalam/hackfusion_huntrix/proto/gen/go/digitaldeltav1;digitaldeltav1";
+
+import "common.proto";
+
+enum AuthEventType {
+  AUTH_EVENT_TYPE_UNSPECIFIED = 0;
+  AUTH_EVENT_TYPE_AUTHZ_DENIED = 1;
+  AUTH_EVENT_TYPE_KEY_PAIR_PROVISIONED = 2;
+  AUTH_EVENT_TYPE_SEED_CREATED = 3;
+  AUTH_EVENT_TYPE_TOTP_VIEWED = 4;
+  AUTH_EVENT_TYPE_HOTP_GENERATED = 5;
+  AUTH_EVENT_TYPE_LOGIN_SUCCESS = 6;
+  AUTH_EVENT_TYPE_LOGIN_FAILURE = 7;
+  AUTH_EVENT_TYPE_ROLE_CHANGED = 8;
+  AUTH_EVENT_TYPE_SECRET_ROTATED = 9;
+  AUTH_EVENT_TYPE_TAMPER_DETECTED = 10;
+}
+
+message IdentityLedgerEntry {
+  string device_id = 1;
+  bytes public_key = 2;
+  NodeRole node_role = 3;
+  uint64 recorded_at_unix_ms = 4;
+}
+
+message AuthAuditEntry {
+  string entry_id = 1;
+  AuthEventType event_type = 2;
+  uint64 created_at_unix_ms = 3;
+  string prev_hash_hex = 4;
+  string hash_hex = 5;
+  string detail = 6;
+}

@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { VectorClockEntry } from "./common_pb";
+import type { DeliveryPriority, VectorClockEntry } from "./common_pb";
 import { file_common } from "./common_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sync.proto.
  */
 export const file_sync: GenFile = /*@__PURE__*/
-  fileDesc("CgpzeW5jLnByb3RvEg9kaWdpdGFsZGVsdGEudjEitgEKD1JlcGxpY2FNZXRhZGF0YRIRCgllbnRpdHlfaWQYASABKAkSEgoKcmVwbGljYV9pZBgCIAEoCRI3Cgx2ZWN0b3JfY2xvY2sYAyADKAsyIS5kaWdpdGFsZGVsdGEudjEuVmVjdG9yQ2xvY2tFbnRyeRIUCgxsb2dpY2FsX3RpbWUYBCABKAQSGgoSdXBkYXRlZF9hdF91bml4X21zGAUgASgEEhEKCXRvbWJzdG9uZRgGIAEoCCJ/Cg1TeW5jT3BlcmF0aW9uEhQKDG9wZXJhdGlvbl9pZBgBIAEoCRITCgtlbnRpdHlfdHlwZRgCIAEoCRIPCgdwYXlsb2FkGAMgASgMEjIKCG1ldGFkYXRhGAQgASgLMiAuZGlnaXRhbGRlbHRhLnYxLlJlcGxpY2FNZXRhZGF0YSKFAgoNUmVsYXlFbnZlbG9wZRITCgtlbnZlbG9wZV9pZBgBIAEoCRISCgpkZWR1cGVfa2V5GAIgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAMgASgJEiIKGmludGVuZGVkX3JlY2lwaWVudF9ub2RlX2lkGAQgASgJEhAKCHR0bF9ob3BzGAUgASgNEhoKEmNyZWF0ZWRfYXRfdW5peF9tcxgGIAEoBBIaChJleHBpcmVzX2F0X3VuaXhfbXMYByABKAQSGQoRZW5jcnlwdGVkX3BheWxvYWQYCCABKAwSFgoOcGF5bG9hZF9zaGEyNTYYCSABKAwSEgoKcmVsYXlfcGF0aBgKIAMoCSKhAQoKU3luY0J1bmRsZRIRCglidW5kbGVfaWQYASABKAkSGQoRc291cmNlX3JlcGxpY2FfaWQYAiABKAkSMgoKb3BlcmF0aW9ucxgDIAMoCzIeLmRpZ2l0YWxkZWx0YS52MS5TeW5jT3BlcmF0aW9uEjEKCWVudmVsb3BlcxgEIAMoCzIeLmRpZ2l0YWxkZWx0YS52MS5SZWxheUVudmVsb3BlIl8KFUV4Y2hhbmdlQnVuZGxlUmVxdWVzdBIZChF0YXJnZXRfcmVwbGljYV9pZBgBIAEoCRIrCgZidW5kbGUYAiABKAsyGy5kaWdpdGFsZGVsdGEudjEuU3luY0J1bmRsZSKKAQoWRXhjaGFuZ2VCdW5kbGVSZXNwb25zZRISCgpyZXBsaWNhX2lkGAEgASgJEh4KFmFjY2VwdGVkX29wZXJhdGlvbl9pZHMYAiADKAkSHgoWcmVqZWN0ZWRfb3BlcmF0aW9uX2lkcxgDIAMoCRIcChRwZW5kaW5nX2VudmVsb3BlX2lkcxgEIAMoCSI7ChJQdWxsUGVuZGluZ1JlcXVlc3QSEgoKcmVwbGljYV9pZBgBIAEoCRIRCgltYXhfaXRlbXMYAiABKA0iSAoTUHVsbFBlbmRpbmdSZXNwb25zZRIxCgllbnZlbG9wZXMYASADKAsyHi5kaWdpdGFsZGVsdGEudjEuUmVsYXlFbnZlbG9wZTLKAQoLU3luY1NlcnZpY2USYQoORXhjaGFuZ2VCdW5kbGUSJi5kaWdpdGFsZGVsdGEudjEuRXhjaGFuZ2VCdW5kbGVSZXF1ZXN0GicuZGlnaXRhbGRlbHRhLnYxLkV4Y2hhbmdlQnVuZGxlUmVzcG9uc2USWAoLUHVsbFBlbmRpbmcSIy5kaWdpdGFsZGVsdGEudjEuUHVsbFBlbmRpbmdSZXF1ZXN0GiQuZGlnaXRhbGRlbHRhLnYxLlB1bGxQZW5kaW5nUmVzcG9uc2VCVFpSZ2l0aHViLmNvbS9TZXlhbWFsYW0vaGFja2Z1c2lvbl9odW50cml4L3Byb3RvL2dlbi9nby9kaWdpdGFsZGVsdGF2MTtkaWdpdGFsZGVsdGF2MWIGcHJvdG8z", [file_common]);
+  fileDesc("CgpzeW5jLnByb3RvEg9kaWdpdGFsZGVsdGEudjEitgEKD1JlcGxpY2FNZXRhZGF0YRIRCgllbnRpdHlfaWQYASABKAkSEgoKcmVwbGljYV9pZBgCIAEoCRI3Cgx2ZWN0b3JfY2xvY2sYAyADKAsyIS5kaWdpdGFsZGVsdGEudjEuVmVjdG9yQ2xvY2tFbnRyeRIUCgxsb2dpY2FsX3RpbWUYBCABKAQSGgoSdXBkYXRlZF9hdF91bml4X21zGAUgASgEEhEKCXRvbWJzdG9uZRgGIAEoCCJ/Cg1TeW5jT3BlcmF0aW9uEhQKDG9wZXJhdGlvbl9pZBgBIAEoCRITCgtlbnRpdHlfdHlwZRgCIAEoCRIPCgdwYXlsb2FkGAMgASgMEjIKCG1ldGFkYXRhGAQgASgLMiAuZGlnaXRhbGRlbHRhLnYxLlJlcGxpY2FNZXRhZGF0YSLhAQoPSW52ZW50b3J5UmVjb3JkEg8KB2l0ZW1faWQYASABKAkSDAoEbmFtZRgCIAEoCRIQCghxdWFudGl0eRgDIAEoDRIzCghwcmlvcml0eRgEIAEoDjIhLmRpZ2l0YWxkZWx0YS52MS5EZWxpdmVyeVByaW9yaXR5EhMKC2xhc3Rfd3JpdGVyGAUgASgJEhoKEnVwZGF0ZWRfYXRfdW5peF9tcxgGIAEoBBI3Cgx2ZWN0b3JfY2xvY2sYByADKAsyIS5kaWdpdGFsZGVsdGEudjEuVmVjdG9yQ2xvY2tFbnRyeSKQAQoNTWVzaEhhbmRzaGFrZRIUCgxkZXZpY2VfbGFiZWwYASABKAkSEgoKcmVwbGljYV9pZBgCIAEoCRIcChRsYXN0X3N5bmNfYXRfdW5peF9tcxgDIAEoBBI3Cgx2ZWN0b3JfY2xvY2sYBCADKAsyIS5kaWdpdGFsZGVsdGEudjEuVmVjdG9yQ2xvY2tFbnRyeSKFAgoNUmVsYXlFbnZlbG9wZRITCgtlbnZlbG9wZV9pZBgBIAEoCRISCgpkZWR1cGVfa2V5GAIgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAMgASgJEiIKGmludGVuZGVkX3JlY2lwaWVudF9ub2RlX2lkGAQgASgJEhAKCHR0bF9ob3BzGAUgASgNEhoKEmNyZWF0ZWRfYXRfdW5peF9tcxgGIAEoBBIaChJleHBpcmVzX2F0X3VuaXhfbXMYByABKAQSGQoRZW5jcnlwdGVkX3BheWxvYWQYCCABKAwSFgoOcGF5bG9hZF9zaGEyNTYYCSABKAwSEgoKcmVsYXlfcGF0aBgKIAMoCSKhAQoKU3luY0J1bmRsZRIRCglidW5kbGVfaWQYASABKAkSGQoRc291cmNlX3JlcGxpY2FfaWQYAiABKAkSMgoKb3BlcmF0aW9ucxgDIAMoCzIeLmRpZ2l0YWxkZWx0YS52MS5TeW5jT3BlcmF0aW9uEjEKCWVudmVsb3BlcxgEIAMoCzIeLmRpZ2l0YWxkZWx0YS52MS5SZWxheUVudmVsb3BlIl8KFUV4Y2hhbmdlQnVuZGxlUmVxdWVzdBIZChF0YXJnZXRfcmVwbGljYV9pZBgBIAEoCRIrCgZidW5kbGUYAiABKAsyGy5kaWdpdGFsZGVsdGEudjEuU3luY0J1bmRsZSKTAQoOUGVlclN5bmNQYWNrZXQSMwoJaGFuZHNoYWtlGAEgASgLMh4uZGlnaXRhbGRlbHRhLnYxLk1lc2hIYW5kc2hha2VIABJBCg9leGNoYW5nZV9idW5kbGUYAiABKAsyJi5kaWdpdGFsZGVsdGEudjEuRXhjaGFuZ2VCdW5kbGVSZXF1ZXN0SABCCQoHcGF5bG9hZCKKAQoWRXhjaGFuZ2VCdW5kbGVSZXNwb25zZRISCgpyZXBsaWNhX2lkGAEgASgJEh4KFmFjY2VwdGVkX29wZXJhdGlvbl9pZHMYAiADKAkSHgoWcmVqZWN0ZWRfb3BlcmF0aW9uX2lkcxgDIAMoCRIcChRwZW5kaW5nX2VudmVsb3BlX2lkcxgEIAMoCSI7ChJQdWxsUGVuZGluZ1JlcXVlc3QSEgoKcmVwbGljYV9pZBgBIAEoCRIRCgltYXhfaXRlbXMYAiABKA0iSAoTUHVsbFBlbmRpbmdSZXNwb25zZRIxCgllbnZlbG9wZXMYASADKAsyHi5kaWdpdGFsZGVsdGEudjEuUmVsYXlFbnZlbG9wZTLKAQoLU3luY1NlcnZpY2USYQoORXhjaGFuZ2VCdW5kbGUSJi5kaWdpdGFsZGVsdGEudjEuRXhjaGFuZ2VCdW5kbGVSZXF1ZXN0GicuZGlnaXRhbGRlbHRhLnYxLkV4Y2hhbmdlQnVuZGxlUmVzcG9uc2USWAoLUHVsbFBlbmRpbmcSIy5kaWdpdGFsZGVsdGEudjEuUHVsbFBlbmRpbmdSZXF1ZXN0GiQuZGlnaXRhbGRlbHRhLnYxLlB1bGxQZW5kaW5nUmVzcG9uc2VCVFpSZ2l0aHViLmNvbS9TZXlhbWFsYW0vaGFja2Z1c2lvbl9odW50cml4L3Byb3RvL2dlbi9nby9kaWdpdGFsZGVsdGF2MTtkaWdpdGFsZGVsdGF2MWIGcHJvdG8z", [file_common]);
 
 /**
  * @generated from message digitaldelta.v1.ReplicaMetadata
@@ -89,6 +89,85 @@ export const SyncOperationSchema: GenMessage<SyncOperation> = /*@__PURE__*/
   messageDesc(file_sync, 1);
 
 /**
+ * @generated from message digitaldelta.v1.InventoryRecord
+ */
+export type InventoryRecord = Message<"digitaldelta.v1.InventoryRecord"> & {
+  /**
+   * @generated from field: string item_id = 1;
+   */
+  itemId: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: uint32 quantity = 3;
+   */
+  quantity: number;
+
+  /**
+   * @generated from field: digitaldelta.v1.DeliveryPriority priority = 4;
+   */
+  priority: DeliveryPriority;
+
+  /**
+   * @generated from field: string last_writer = 5;
+   */
+  lastWriter: string;
+
+  /**
+   * @generated from field: uint64 updated_at_unix_ms = 6;
+   */
+  updatedAtUnixMs: bigint;
+
+  /**
+   * @generated from field: repeated digitaldelta.v1.VectorClockEntry vector_clock = 7;
+   */
+  vectorClock: VectorClockEntry[];
+};
+
+/**
+ * Describes the message digitaldelta.v1.InventoryRecord.
+ * Use `create(InventoryRecordSchema)` to create a new message.
+ */
+export const InventoryRecordSchema: GenMessage<InventoryRecord> = /*@__PURE__*/
+  messageDesc(file_sync, 2);
+
+/**
+ * @generated from message digitaldelta.v1.MeshHandshake
+ */
+export type MeshHandshake = Message<"digitaldelta.v1.MeshHandshake"> & {
+  /**
+   * @generated from field: string device_label = 1;
+   */
+  deviceLabel: string;
+
+  /**
+   * @generated from field: string replica_id = 2;
+   */
+  replicaId: string;
+
+  /**
+   * @generated from field: uint64 last_sync_at_unix_ms = 3;
+   */
+  lastSyncAtUnixMs: bigint;
+
+  /**
+   * @generated from field: repeated digitaldelta.v1.VectorClockEntry vector_clock = 4;
+   */
+  vectorClock: VectorClockEntry[];
+};
+
+/**
+ * Describes the message digitaldelta.v1.MeshHandshake.
+ * Use `create(MeshHandshakeSchema)` to create a new message.
+ */
+export const MeshHandshakeSchema: GenMessage<MeshHandshake> = /*@__PURE__*/
+  messageDesc(file_sync, 3);
+
+/**
  * @generated from message digitaldelta.v1.RelayEnvelope
  */
 export type RelayEnvelope = Message<"digitaldelta.v1.RelayEnvelope"> & {
@@ -148,7 +227,7 @@ export type RelayEnvelope = Message<"digitaldelta.v1.RelayEnvelope"> & {
  * Use `create(RelayEnvelopeSchema)` to create a new message.
  */
 export const RelayEnvelopeSchema: GenMessage<RelayEnvelope> = /*@__PURE__*/
-  messageDesc(file_sync, 2);
+  messageDesc(file_sync, 4);
 
 /**
  * @generated from message digitaldelta.v1.SyncBundle
@@ -180,7 +259,7 @@ export type SyncBundle = Message<"digitaldelta.v1.SyncBundle"> & {
  * Use `create(SyncBundleSchema)` to create a new message.
  */
 export const SyncBundleSchema: GenMessage<SyncBundle> = /*@__PURE__*/
-  messageDesc(file_sync, 3);
+  messageDesc(file_sync, 5);
 
 /**
  * @generated from message digitaldelta.v1.ExchangeBundleRequest
@@ -202,7 +281,36 @@ export type ExchangeBundleRequest = Message<"digitaldelta.v1.ExchangeBundleReque
  * Use `create(ExchangeBundleRequestSchema)` to create a new message.
  */
 export const ExchangeBundleRequestSchema: GenMessage<ExchangeBundleRequest> = /*@__PURE__*/
-  messageDesc(file_sync, 4);
+  messageDesc(file_sync, 6);
+
+/**
+ * @generated from message digitaldelta.v1.PeerSyncPacket
+ */
+export type PeerSyncPacket = Message<"digitaldelta.v1.PeerSyncPacket"> & {
+  /**
+   * @generated from oneof digitaldelta.v1.PeerSyncPacket.payload
+   */
+  payload: {
+    /**
+     * @generated from field: digitaldelta.v1.MeshHandshake handshake = 1;
+     */
+    value: MeshHandshake;
+    case: "handshake";
+  } | {
+    /**
+     * @generated from field: digitaldelta.v1.ExchangeBundleRequest exchange_bundle = 2;
+     */
+    value: ExchangeBundleRequest;
+    case: "exchangeBundle";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message digitaldelta.v1.PeerSyncPacket.
+ * Use `create(PeerSyncPacketSchema)` to create a new message.
+ */
+export const PeerSyncPacketSchema: GenMessage<PeerSyncPacket> = /*@__PURE__*/
+  messageDesc(file_sync, 7);
 
 /**
  * @generated from message digitaldelta.v1.ExchangeBundleResponse
@@ -234,7 +342,7 @@ export type ExchangeBundleResponse = Message<"digitaldelta.v1.ExchangeBundleResp
  * Use `create(ExchangeBundleResponseSchema)` to create a new message.
  */
 export const ExchangeBundleResponseSchema: GenMessage<ExchangeBundleResponse> = /*@__PURE__*/
-  messageDesc(file_sync, 5);
+  messageDesc(file_sync, 8);
 
 /**
  * @generated from message digitaldelta.v1.PullPendingRequest
@@ -256,7 +364,7 @@ export type PullPendingRequest = Message<"digitaldelta.v1.PullPendingRequest"> &
  * Use `create(PullPendingRequestSchema)` to create a new message.
  */
 export const PullPendingRequestSchema: GenMessage<PullPendingRequest> = /*@__PURE__*/
-  messageDesc(file_sync, 6);
+  messageDesc(file_sync, 9);
 
 /**
  * @generated from message digitaldelta.v1.PullPendingResponse
@@ -273,7 +381,7 @@ export type PullPendingResponse = Message<"digitaldelta.v1.PullPendingResponse">
  * Use `create(PullPendingResponseSchema)` to create a new message.
  */
 export const PullPendingResponseSchema: GenMessage<PullPendingResponse> = /*@__PURE__*/
-  messageDesc(file_sync, 7);
+  messageDesc(file_sync, 10);
 
 /**
  * @generated from service digitaldelta.v1.SyncService

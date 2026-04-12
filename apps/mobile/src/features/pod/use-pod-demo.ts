@@ -147,9 +147,10 @@ export function usePodDemo() {
     }
 
     try {
-      const payload = JSON.parse(demo.lastChallengeValue) as { payload_hash: string };
-      payload.payload_hash = `${payload.payload_hash.slice(0, -1)}0`;
-      await processScannedValue(JSON.stringify(payload));
+      const prefix = demo.lastChallengeValue.slice(0, 5);
+      const payload = demo.lastChallengeValue.slice(5);
+      const tampered = `${prefix}${payload.slice(0, -1)}${payload.endsWith('0') ? '1' : '0'}`;
+      await processScannedValue(tampered);
     } catch {
       setDemo((current) => ({
         ...current,

@@ -115,6 +115,13 @@ go run ./services/core/cmd/grpcclient
 go run ./services/core/cmd/grpcclient -vehicle speedboat
 ```
 
+To run the HTTP and gRPC APIs with TLS 1.3:
+```bash
+go run ./scripts/devcert -hosts "localhost,127.0.0.1,192.168.68.110"
+go run ./services/core/cmd/api -tls-cert devcerts/cert.pem -tls-key devcerts/key.pem
+go run ./services/core/cmd/grpcapi -tls-cert devcerts/cert.pem -tls-key devcerts/key.pem
+```
+
 ### M4 Route Endpoints
 ```bash
 curl "http://127.0.0.1:8080/api/route/preview?from=N1&to=N3&vehicle=truck&payload_kg=100"
@@ -153,6 +160,8 @@ python services/chaos/chaos_server.py
 powershell -ExecutionPolicy Bypass -File scripts/install-protoc.ps1
 powershell -ExecutionPolicy Bypass -File scripts/generate-proto.ps1
 ```
+
+Direct mobile sync packets now use protobuf-encoded peer packets on the Wi-Fi Direct transport. JSON is retained only for local storage and the developer-facing dashboard APIs.
 
 If Go dependency fetch is blocked on your network, the generator still emits the `.pb.go` and `.ts` files, but `go mod tidy` may need to be retried later.
 

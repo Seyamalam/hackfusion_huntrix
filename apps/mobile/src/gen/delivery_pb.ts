@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file delivery.proto.
  */
 export const file_delivery: GenFile = /*@__PURE__*/
-  fileDesc("Cg5kZWxpdmVyeS5wcm90bxIPZGlnaXRhbGRlbHRhLnYxIvoBCghEZWxpdmVyeRITCgtkZWxpdmVyeV9pZBgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIzCghwcmlvcml0eRgDIAEoDjIhLmRpZ2l0YWxkZWx0YS52MS5EZWxpdmVyeVByaW9yaXR5EhYKDm9yaWdpbl9ub2RlX2lkGAQgASgJEhsKE2Rlc3RpbmF0aW9uX25vZGVfaWQYBSABKAkSGwoTYXNzaWduZWRfdmVoaWNsZV9pZBgGIAEoCRISCgpjYXJnb190YWdzGAcgAygJEhEKCXdlaWdodF9rZxgIIAEoDRIWCg5kdWVfYnlfdW5peF9tcxgJIAEoBCK1AQoYUHJvb2ZPZkRlbGl2ZXJ5Q2hhbGxlbmdlEhMKC2RlbGl2ZXJ5X2lkGAEgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAIgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAMgASgMEhQKDHBheWxvYWRfaGFzaBgEIAEoDBINCgVub25jZRgFIAEoCRIZChF0aW1lc3RhbXBfdW5peF9tcxgGIAEoBBIRCglzaWduYXR1cmUYByABKAwiewobR2VuZXJhdGVQb2RDaGFsbGVuZ2VSZXF1ZXN0EhMKC2RlbGl2ZXJ5X2lkGAEgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAIgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAMgASgMEhQKDHBheWxvYWRfaGFzaBgEIAEoDCLPAQoPRGVsaXZlcnlSZWNlaXB0EhIKCnJlY2VpcHRfaWQYASABKAkSEwoLZGVsaXZlcnlfaWQYAiABKAkSFAoMZnJvbV9ub2RlX2lkGAMgASgJEhIKCnRvX25vZGVfaWQYBCABKAkSGwoTcmVjZWl2ZWRfYXRfdW5peF9tcxgFIAEoBBIWCg5jaGFsbGVuZ2VfaGFzaBgGIAEoDBIaChJyZWNlaXZlcl9zaWduYXR1cmUYByABKAwSGAoQc2VuZGVyX3NpZ25hdHVyZRgIIAEoDCKEAQoRQ29uZmlybVBvZFJlcXVlc3QSPAoJY2hhbGxlbmdlGAEgASgLMikuZGlnaXRhbGRlbHRhLnYxLlByb29mT2ZEZWxpdmVyeUNoYWxsZW5nZRIxCgdyZWNlaXB0GAIgASgLMiAuZGlnaXRhbGRlbHRhLnYxLkRlbGl2ZXJ5UmVjZWlwdCJZChJDb25maXJtUG9kUmVzcG9uc2USEAoIYWNjZXB0ZWQYASABKAgSFwoPcmVwbGF5X2RldGVjdGVkGAIgASgIEhgKEHJlamVjdGlvbl9yZWFzb24YAyABKAky2QEKD0RlbGl2ZXJ5U2VydmljZRJvChRHZW5lcmF0ZVBvZENoYWxsZW5nZRIsLmRpZ2l0YWxkZWx0YS52MS5HZW5lcmF0ZVBvZENoYWxsZW5nZVJlcXVlc3QaKS5kaWdpdGFsZGVsdGEudjEuUHJvb2ZPZkRlbGl2ZXJ5Q2hhbGxlbmdlElUKCkNvbmZpcm1Qb2QSIi5kaWdpdGFsZGVsdGEudjEuQ29uZmlybVBvZFJlcXVlc3QaIy5kaWdpdGFsZGVsdGEudjEuQ29uZmlybVBvZFJlc3BvbnNlQlRaUmdpdGh1Yi5jb20vU2V5YW1hbGFtL2hhY2tmdXNpb25faHVudHJpeC9wcm90by9nZW4vZ28vZGlnaXRhbGRlbHRhdjE7ZGlnaXRhbGRlbHRhdjFiBnByb3RvMw", [file_common]);
+  fileDesc("Cg5kZWxpdmVyeS5wcm90bxIPZGlnaXRhbGRlbHRhLnYxIvoBCghEZWxpdmVyeRITCgtkZWxpdmVyeV9pZBgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIzCghwcmlvcml0eRgDIAEoDjIhLmRpZ2l0YWxkZWx0YS52MS5EZWxpdmVyeVByaW9yaXR5EhYKDm9yaWdpbl9ub2RlX2lkGAQgASgJEhsKE2Rlc3RpbmF0aW9uX25vZGVfaWQYBSABKAkSGwoTYXNzaWduZWRfdmVoaWNsZV9pZBgGIAEoCRISCgpjYXJnb190YWdzGAcgAygJEhEKCXdlaWdodF9rZxgIIAEoDRIWCg5kdWVfYnlfdW5peF9tcxgJIAEoBCK1AQoYUHJvb2ZPZkRlbGl2ZXJ5Q2hhbGxlbmdlEhMKC2RlbGl2ZXJ5X2lkGAEgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAIgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAMgASgMEhQKDHBheWxvYWRfaGFzaBgEIAEoDBINCgVub25jZRgFIAEoCRIZChF0aW1lc3RhbXBfdW5peF9tcxgGIAEoBBIRCglzaWduYXR1cmUYByABKAwiewobR2VuZXJhdGVQb2RDaGFsbGVuZ2VSZXF1ZXN0EhMKC2RlbGl2ZXJ5X2lkGAEgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAIgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAMgASgMEhQKDHBheWxvYWRfaGFzaBgEIAEoDCLPAQoPRGVsaXZlcnlSZWNlaXB0EhIKCnJlY2VpcHRfaWQYASABKAkSEwoLZGVsaXZlcnlfaWQYAiABKAkSFAoMZnJvbV9ub2RlX2lkGAMgASgJEhIKCnRvX25vZGVfaWQYBCABKAkSGwoTcmVjZWl2ZWRfYXRfdW5peF9tcxgFIAEoBBIWCg5jaGFsbGVuZ2VfaGFzaBgGIAEoDBIaChJyZWNlaXZlcl9zaWduYXR1cmUYByABKAwSGAoQc2VuZGVyX3NpZ25hdHVyZRgIIAEoDCLrAQoXUHJvb2ZPZkRlbGl2ZXJ5UmVzcG9uc2USPAoJY2hhbGxlbmdlGAEgASgLMikuZGlnaXRhbGRlbHRhLnYxLlByb29mT2ZEZWxpdmVyeUNoYWxsZW5nZRIZChFyZWNpcGllbnRfbm9kZV9pZBgCIAEoCRIcChRyZWNpcGllbnRfcHVibGljX2tleRgDIAEoDBIXCg9yZWNpcGllbnRfbm9uY2UYBCABKAkSIwobcmVjaXBpZW50X3RpbWVzdGFtcF91bml4X21zGAUgASgEEhsKE3JlY2lwaWVudF9zaWduYXR1cmUYBiABKAwixwMKGURlbGl2ZXJ5UmVjZWlwdENoYWluRW50cnkSEgoKcmVjZWlwdF9pZBgBIAEoCRITCgtkZWxpdmVyeV9pZBgCIAEoCRIWCg5zZW5kZXJfbm9kZV9pZBgDIAEoCRIZChFyZWNpcGllbnRfbm9kZV9pZBgEIAEoCRIZChFzZW5kZXJfcHVibGljX2tleRgFIAEoDBIcChRyZWNpcGllbnRfcHVibGljX2tleRgGIAEoDBIXCg9jaGFsbGVuZ2Vfbm9uY2UYByABKAkSFwoPcmVjaXBpZW50X25vbmNlGAggASgJEiMKG2NoYWxsZW5nZV90aW1lc3RhbXBfdW5peF9tcxgJIAEoBBIjChtyZWNpcGllbnRfdGltZXN0YW1wX3VuaXhfbXMYCiABKAQSFAoMcGF5bG9hZF9oYXNoGAsgASgMEhgKEHNlbmRlcl9zaWduYXR1cmUYDCABKAwSGwoTcmVjaXBpZW50X3NpZ25hdHVyZRgNIAEoDBIZChFwcmV2X3JlY2VpcHRfaGFzaBgOIAEoDBIUCgxyZWNlaXB0X2hhc2gYDyABKAwSGwoTdmVyaWZpZWRfYXRfdW5peF9tcxgQIAEoBCKEAQoRQ29uZmlybVBvZFJlcXVlc3QSPAoJY2hhbGxlbmdlGAEgASgLMikuZGlnaXRhbGRlbHRhLnYxLlByb29mT2ZEZWxpdmVyeUNoYWxsZW5nZRIxCgdyZWNlaXB0GAIgASgLMiAuZGlnaXRhbGRlbHRhLnYxLkRlbGl2ZXJ5UmVjZWlwdCJZChJDb25maXJtUG9kUmVzcG9uc2USEAoIYWNjZXB0ZWQYASABKAgSFwoPcmVwbGF5X2RldGVjdGVkGAIgASgIEhgKEHJlamVjdGlvbl9yZWFzb24YAyABKAky2QEKD0RlbGl2ZXJ5U2VydmljZRJvChRHZW5lcmF0ZVBvZENoYWxsZW5nZRIsLmRpZ2l0YWxkZWx0YS52MS5HZW5lcmF0ZVBvZENoYWxsZW5nZVJlcXVlc3QaKS5kaWdpdGFsZGVsdGEudjEuUHJvb2ZPZkRlbGl2ZXJ5Q2hhbGxlbmdlElUKCkNvbmZpcm1Qb2QSIi5kaWdpdGFsZGVsdGEudjEuQ29uZmlybVBvZFJlcXVlc3QaIy5kaWdpdGFsZGVsdGEudjEuQ29uZmlybVBvZFJlc3BvbnNlQlRaUmdpdGh1Yi5jb20vU2V5YW1hbGFtL2hhY2tmdXNpb25faHVudHJpeC9wcm90by9nZW4vZ28vZGlnaXRhbGRlbHRhdjE7ZGlnaXRhbGRlbHRhdjFiBnByb3RvMw", [file_common]);
 
 /**
  * @generated from message digitaldelta.v1.Delivery
@@ -203,6 +203,140 @@ export const DeliveryReceiptSchema: GenMessage<DeliveryReceipt> = /*@__PURE__*/
   messageDesc(file_delivery, 3);
 
 /**
+ * @generated from message digitaldelta.v1.ProofOfDeliveryResponse
+ */
+export type ProofOfDeliveryResponse = Message<"digitaldelta.v1.ProofOfDeliveryResponse"> & {
+  /**
+   * @generated from field: digitaldelta.v1.ProofOfDeliveryChallenge challenge = 1;
+   */
+  challenge?: ProofOfDeliveryChallenge;
+
+  /**
+   * @generated from field: string recipient_node_id = 2;
+   */
+  recipientNodeId: string;
+
+  /**
+   * @generated from field: bytes recipient_public_key = 3;
+   */
+  recipientPublicKey: Uint8Array;
+
+  /**
+   * @generated from field: string recipient_nonce = 4;
+   */
+  recipientNonce: string;
+
+  /**
+   * @generated from field: uint64 recipient_timestamp_unix_ms = 5;
+   */
+  recipientTimestampUnixMs: bigint;
+
+  /**
+   * @generated from field: bytes recipient_signature = 6;
+   */
+  recipientSignature: Uint8Array;
+};
+
+/**
+ * Describes the message digitaldelta.v1.ProofOfDeliveryResponse.
+ * Use `create(ProofOfDeliveryResponseSchema)` to create a new message.
+ */
+export const ProofOfDeliveryResponseSchema: GenMessage<ProofOfDeliveryResponse> = /*@__PURE__*/
+  messageDesc(file_delivery, 4);
+
+/**
+ * @generated from message digitaldelta.v1.DeliveryReceiptChainEntry
+ */
+export type DeliveryReceiptChainEntry = Message<"digitaldelta.v1.DeliveryReceiptChainEntry"> & {
+  /**
+   * @generated from field: string receipt_id = 1;
+   */
+  receiptId: string;
+
+  /**
+   * @generated from field: string delivery_id = 2;
+   */
+  deliveryId: string;
+
+  /**
+   * @generated from field: string sender_node_id = 3;
+   */
+  senderNodeId: string;
+
+  /**
+   * @generated from field: string recipient_node_id = 4;
+   */
+  recipientNodeId: string;
+
+  /**
+   * @generated from field: bytes sender_public_key = 5;
+   */
+  senderPublicKey: Uint8Array;
+
+  /**
+   * @generated from field: bytes recipient_public_key = 6;
+   */
+  recipientPublicKey: Uint8Array;
+
+  /**
+   * @generated from field: string challenge_nonce = 7;
+   */
+  challengeNonce: string;
+
+  /**
+   * @generated from field: string recipient_nonce = 8;
+   */
+  recipientNonce: string;
+
+  /**
+   * @generated from field: uint64 challenge_timestamp_unix_ms = 9;
+   */
+  challengeTimestampUnixMs: bigint;
+
+  /**
+   * @generated from field: uint64 recipient_timestamp_unix_ms = 10;
+   */
+  recipientTimestampUnixMs: bigint;
+
+  /**
+   * @generated from field: bytes payload_hash = 11;
+   */
+  payloadHash: Uint8Array;
+
+  /**
+   * @generated from field: bytes sender_signature = 12;
+   */
+  senderSignature: Uint8Array;
+
+  /**
+   * @generated from field: bytes recipient_signature = 13;
+   */
+  recipientSignature: Uint8Array;
+
+  /**
+   * @generated from field: bytes prev_receipt_hash = 14;
+   */
+  prevReceiptHash: Uint8Array;
+
+  /**
+   * @generated from field: bytes receipt_hash = 15;
+   */
+  receiptHash: Uint8Array;
+
+  /**
+   * @generated from field: uint64 verified_at_unix_ms = 16;
+   */
+  verifiedAtUnixMs: bigint;
+};
+
+/**
+ * Describes the message digitaldelta.v1.DeliveryReceiptChainEntry.
+ * Use `create(DeliveryReceiptChainEntrySchema)` to create a new message.
+ */
+export const DeliveryReceiptChainEntrySchema: GenMessage<DeliveryReceiptChainEntry> = /*@__PURE__*/
+  messageDesc(file_delivery, 5);
+
+/**
  * @generated from message digitaldelta.v1.ConfirmPodRequest
  */
 export type ConfirmPodRequest = Message<"digitaldelta.v1.ConfirmPodRequest"> & {
@@ -222,7 +356,7 @@ export type ConfirmPodRequest = Message<"digitaldelta.v1.ConfirmPodRequest"> & {
  * Use `create(ConfirmPodRequestSchema)` to create a new message.
  */
 export const ConfirmPodRequestSchema: GenMessage<ConfirmPodRequest> = /*@__PURE__*/
-  messageDesc(file_delivery, 4);
+  messageDesc(file_delivery, 6);
 
 /**
  * @generated from message digitaldelta.v1.ConfirmPodResponse
@@ -249,7 +383,7 @@ export type ConfirmPodResponse = Message<"digitaldelta.v1.ConfirmPodResponse"> &
  * Use `create(ConfirmPodResponseSchema)` to create a new message.
  */
 export const ConfirmPodResponseSchema: GenMessage<ConfirmPodResponse> = /*@__PURE__*/
-  messageDesc(file_delivery, 5);
+  messageDesc(file_delivery, 7);
 
 /**
  * @generated from service digitaldelta.v1.DeliveryService

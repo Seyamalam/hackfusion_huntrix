@@ -1,5 +1,10 @@
+import { create, fromBinary, toBinary } from '@bufbuild/protobuf';
 import { ed25519 } from '@noble/curves/ed25519.js';
 
+import {
+  ProofOfDeliveryChallengeSchema,
+  ProofOfDeliveryResponseSchema,
+} from '@/src/gen/delivery_pb';
 import { canPerform } from '@/src/features/auth/auth-rbac';
 import { readRole } from '@/src/features/auth/auth-storage';
 import { ensureAuthState } from '@/src/features/auth/auth-service';
@@ -8,6 +13,8 @@ import { readPodReceipts, readUsedPodNonces, resetPodLedger, writePodReceipts, w
 import type { PodChallenge, PodOutcome, PodPayload, PodReceipt, PodResponse } from '@/src/features/pod/pod-types';
 
 const ACCEPTED_WINDOW_MS = 15 * 60 * 1000;
+const CHALLENGE_PREFIX = 'podc:';
+const RESPONSE_PREFIX = 'podr:';
 
 export async function createChallengeQr(deliveryId: string, payloadSummary: string): Promise<PodOutcome<{ payload: PodChallenge; qrValue: string }>> {
   const authState = await ensureAuthState();
@@ -43,7 +50,15 @@ export async function createChallengeQr(deliveryId: string, payloadSummary: stri
     ok: true,
     value: {
       payload,
-      qrValue: JSON.stringify(payload),
+      qrValue: `${CHALLENGE_PREFIX}${bytesToHex(toBinary(ProofOfDeliveryChallengeSchema, create(ProofOfDeliveryChallengeSchema, {
+        deliveryId: payload.delivery_id,
+        senderNodeId: payload.sender_device_id,
+        senderPublicKey: hexToBytes(payload.sender_pubkey),
+        payloadHash: hexToBytes(payload.payload_hash),
+        nonce: payload.nonce,
+        timestampUnixMs: BigInt(Date.parse(payload.timestamp)),
+        signature: hexToBytes(payload.signature),
+      })))}`,
     },
   };
 }
@@ -109,7 +124,22 @@ export async function countersignChallenge(rawValue: string): Promise<PodOutcome
     ok: true,
     value: {
       payload: response,
-      qrValue: JSON.stringify(response),
+      qrValue: `${RESPONSE_PREFIX}${bytesToHex(toBinary(ProofOfDeliveryResponseSchema, create(ProofOfDeliveryResponseSchema, {
+        challenge: create(ProofOfDeliveryChallengeSchema, {
+          deliveryId: challenge.delivery_id,
+          senderNodeId: challenge.sender_device_id,
+          senderPublicKey: hexToBytes(challenge.sender_pubkey),
+          payloadHash: hexToBytes(challenge.payload_hash),
+          nonce: challenge.nonce,
+          timestampUnixMs: BigInt(Date.parse(challenge.timestamp)),
+          signature: hexToBytes(challenge.signature),
+        }),
+        recipientNodeId: response.recipient_device_id,
+        recipientPublicKey: hexToBytes(response.recipient_pubkey),
+        recipientNonce: response.recipient_nonce,
+        recipientTimestampUnixMs: BigInt(Date.parse(response.recipient_timestamp)),
+        recipientSignature: hexToBytes(response.recipient_signature),
+      })))}`,
     },
   };
 }
@@ -199,16 +229,54 @@ export async function clearPodLedger() {
 
 export function parsePodPayload(rawValue: string): PodOutcome<PodPayload> {
   try {
-    const payload = JSON.parse(rawValue) as PodPayload;
-    if (!payload || typeof payload !== 'object' || !('kind' in payload)) {
-      return { code: 'POD_ERR_INVALID_FORMAT', message: 'QR payload is not a recognized PoD packet.', ok: false };
+    if (rawValue.startsWith(CHALLENGE_PREFIX)) {
+      const message = fromBinary(ProofOfDeliveryChallengeSchema, hexToBytes(rawValue.slice(CHALLENGE_PREFIX.length)));
+      return {
+        code: 'POD_OK',
+        message: 'Parsed PoD challenge payload.',
+        ok: true,
+        value: {
+          delivery_id: message.deliveryId,
+          kind: 'pod-challenge',
+          nonce: message.nonce,
+          payload_hash: bytesToHex(message.payloadHash),
+          sender_device_id: message.senderNodeId,
+          sender_pubkey: bytesToHex(message.senderPublicKey),
+          sender_role: 'field_volunteer',
+          signature: bytesToHex(message.signature),
+          timestamp: new Date(Number(message.timestampUnixMs)).toISOString(),
+        },
+      };
     }
-    if (payload.kind === 'pod-challenge' || payload.kind === 'pod-response') {
-      return { code: 'POD_OK', message: 'Parsed PoD payload.', ok: true, value: payload };
+    if (rawValue.startsWith(RESPONSE_PREFIX)) {
+      const message = fromBinary(ProofOfDeliveryResponseSchema, hexToBytes(rawValue.slice(RESPONSE_PREFIX.length)));
+      return {
+        code: 'POD_OK',
+        message: 'Parsed PoD response payload.',
+        ok: true,
+        value: {
+          challenge_nonce: message.challenge?.nonce ?? '',
+          challenge_timestamp: new Date(Number(message.challenge?.timestampUnixMs ?? 0n)).toISOString(),
+          delivery_id: message.challenge?.deliveryId ?? '',
+          kind: 'pod-response',
+          payload_hash: bytesToHex(message.challenge?.payloadHash ?? new Uint8Array()),
+          receipt_id: `resp-${message.recipientNodeId}-${message.recipientNonce}`,
+          recipient_device_id: message.recipientNodeId,
+          recipient_nonce: message.recipientNonce,
+          recipient_pubkey: bytesToHex(message.recipientPublicKey),
+          recipient_role: 'camp_commander',
+          recipient_signature: bytesToHex(message.recipientSignature),
+          recipient_timestamp: new Date(Number(message.recipientTimestampUnixMs)).toISOString(),
+          sender_device_id: message.challenge?.senderNodeId ?? '',
+          sender_pubkey: bytesToHex(message.challenge?.senderPublicKey ?? new Uint8Array()),
+          sender_role: 'field_volunteer',
+          sender_signature: bytesToHex(message.challenge?.signature ?? new Uint8Array()),
+        },
+      };
     }
-    return { code: 'POD_ERR_INVALID_FORMAT', message: 'Unsupported PoD packet kind.', ok: false };
+    return { code: 'POD_ERR_INVALID_FORMAT', message: 'Unsupported PoD packet encoding.', ok: false };
   } catch {
-    return { code: 'POD_ERR_INVALID_FORMAT', message: 'QR payload is not valid JSON.', ok: false };
+    return { code: 'POD_ERR_INVALID_FORMAT', message: 'QR payload is not valid protobuf data.', ok: false };
   }
 }
 
