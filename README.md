@@ -51,7 +51,8 @@ Android profiling capture:
 - [x] Add hybrid fleet orchestration with drone-required zones, rendezvous logic, handoff simulation, and mesh throttling
 - [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
-- [ ] Add `DEMO.md`, model card, and submission assets
+- [x] Add `DEMO.md` and model-card source docs
+- [ ] Add remaining submission assets
 
 ## Scope Correction
 The restored Module 1 and Module 2 page changes the plan in one important way:
@@ -163,6 +164,11 @@ curl -X POST "http://127.0.0.1:8080/api/sync/inventory/resolve?choice=remote"
 curl -X POST http://127.0.0.1:8080/api/sync/inventory/reset
 ```
 
+Judge proof docs:
+- `DEMO.md`
+- `docs/qa/M2-QA.md`
+- `docs/compliance/M2-transport-proof.md`
+
 ### Chaos Simulator
 ```bash
 python -m pip install -r services/chaos/requirements.txt
@@ -175,7 +181,9 @@ powershell -ExecutionPolicy Bypass -File scripts/install-protoc.ps1
 powershell -ExecutionPolicy Bypass -File scripts/generate-proto.ps1
 ```
 
-Direct mobile sync packets now use protobuf-encoded peer packets on the Wi-Fi Direct transport. JSON is retained only for local storage and the developer-facing dashboard APIs.
+Direct mobile sync packets now use protobuf `SyncService` RPC frames over the Wi-Fi Direct native socket transport. JSON is retained only for local storage and the developer-facing dashboard APIs.
+
+This closes the schema-drift problem and aligns the payloads with the checked-in service contract, but it is still not the same as running a full HTTP/2 gRPC stack directly on both phones.
 
 If Go dependency fetch is blocked on your network, the generator still emits the `.pb.go` and `.ts` files, but `go mod tidy` may need to be retried later.
 

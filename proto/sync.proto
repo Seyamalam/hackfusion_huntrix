@@ -65,9 +65,16 @@ message ExchangeBundleRequest {
 }
 
 message PeerSyncPacket {
+  string correlation_id = 3;
+  string rpc_method = 4;
+  bool is_response = 5;
+
   oneof payload {
     MeshHandshake handshake = 1;
     ExchangeBundleRequest exchange_bundle = 2;
+    ExchangeBundleResponse exchange_bundle_response = 6;
+    PullPendingRequest pull_pending_request = 7;
+    PullPendingResponse pull_pending_response = 8;
   }
 }
 

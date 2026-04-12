@@ -176,6 +176,7 @@ func (s *Server) handleRoutePreview(w http.ResponseWriter, r *http.Request) {
 	failedEdgeID := strings.TrimSpace(r.URL.Query().Get("failed_edge"))
 	failureStatus := defaultString(r.URL.Query().Get("failure_status"), "washed_out")
 	graph = applyEdgeFailure(graph, failedEdgeID, failureStatus)
+	graph = s.applyPredictivePenalties(graph)
 
 	engine := routing.NewEngine(graph)
 	start := time.Now()
@@ -209,6 +210,7 @@ func (s *Server) handleDashboardSummary(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
+	graph = s.applyPredictivePenalties(graph)
 
 	engine := routing.NewEngine(graph)
 	start := time.Now()
@@ -254,6 +256,7 @@ func (s *Server) handleActiveRoutes(w http.ResponseWriter, r *http.Request) {
 	if failedEdgeID != "" {
 		graph = applyEdgeFailure(graph, failedEdgeID, failureStatus)
 	}
+	graph = s.applyPredictivePenalties(graph)
 
 	engine := routing.NewEngine(graph)
 	start := time.Now()
@@ -311,6 +314,7 @@ func (s *Server) handleMissionRoutes(w http.ResponseWriter, r *http.Request) {
 	if failedEdgeID != "" {
 		graph = applyEdgeFailure(graph, failedEdgeID, failureStatus)
 	}
+	graph = s.applyPredictivePenalties(graph)
 
 	engine := routing.NewEngine(graph)
 	start := time.Now()
@@ -359,6 +363,7 @@ func (s *Server) handleTriageStatus(w http.ResponseWriter, r *http.Request) {
 	if failedEdgeID != "" {
 		currentGraph = applyEdgeFailure(currentGraph, failedEdgeID, failureStatus)
 	}
+	currentGraph = s.applyPredictivePenalties(currentGraph)
 	slowdownPct, err := parseIntQuery(r, "slowdown_pct", 0)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
@@ -412,6 +417,15 @@ func (s *Server) handlePredictiveStatus(w http.ResponseWriter, r *http.Request) 
 		Status:      status,
 		RecomputeMs: time.Since(start).Milliseconds(),
 	})
+}
+
+func (s *Server) applyPredictivePenalties(graph scenario.Graph) scenario.Graph {
+	status, err := predictive.Evaluate(graph, s.repoRoot())
+	if err != nil {
+		return graph
+	}
+
+	return predictive.ApplyPenalties(graph, status.Predictions)
 }
 
 func (s *Server) handleFleetOrchestrationStatus(w http.ResponseWriter, r *http.Request) {

@@ -570,11 +570,17 @@ func (x *ExchangeBundleRequest) GetBundle() *SyncBundle {
 }
 
 type PeerSyncPacket struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CorrelationId string                 `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	RpcMethod     string                 `protobuf:"bytes,4,opt,name=rpc_method,json=rpcMethod,proto3" json:"rpc_method,omitempty"`
+	IsResponse    bool                   `protobuf:"varint,5,opt,name=is_response,json=isResponse,proto3" json:"is_response,omitempty"`
 	// Types that are valid to be assigned to Payload:
 	//
 	//	*PeerSyncPacket_Handshake
 	//	*PeerSyncPacket_ExchangeBundle
+	//	*PeerSyncPacket_ExchangeBundleResponse
+	//	*PeerSyncPacket_PullPendingRequest
+	//	*PeerSyncPacket_PullPendingResponse
 	Payload       isPeerSyncPacket_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -610,6 +616,27 @@ func (*PeerSyncPacket) Descriptor() ([]byte, []int) {
 	return file_sync_proto_rawDescGZIP(), []int{7}
 }
 
+func (x *PeerSyncPacket) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+func (x *PeerSyncPacket) GetRpcMethod() string {
+	if x != nil {
+		return x.RpcMethod
+	}
+	return ""
+}
+
+func (x *PeerSyncPacket) GetIsResponse() bool {
+	if x != nil {
+		return x.IsResponse
+	}
+	return false
+}
+
 func (x *PeerSyncPacket) GetPayload() isPeerSyncPacket_Payload {
 	if x != nil {
 		return x.Payload
@@ -635,6 +662,33 @@ func (x *PeerSyncPacket) GetExchangeBundle() *ExchangeBundleRequest {
 	return nil
 }
 
+func (x *PeerSyncPacket) GetExchangeBundleResponse() *ExchangeBundleResponse {
+	if x != nil {
+		if x, ok := x.Payload.(*PeerSyncPacket_ExchangeBundleResponse); ok {
+			return x.ExchangeBundleResponse
+		}
+	}
+	return nil
+}
+
+func (x *PeerSyncPacket) GetPullPendingRequest() *PullPendingRequest {
+	if x != nil {
+		if x, ok := x.Payload.(*PeerSyncPacket_PullPendingRequest); ok {
+			return x.PullPendingRequest
+		}
+	}
+	return nil
+}
+
+func (x *PeerSyncPacket) GetPullPendingResponse() *PullPendingResponse {
+	if x != nil {
+		if x, ok := x.Payload.(*PeerSyncPacket_PullPendingResponse); ok {
+			return x.PullPendingResponse
+		}
+	}
+	return nil
+}
+
 type isPeerSyncPacket_Payload interface {
 	isPeerSyncPacket_Payload()
 }
@@ -647,9 +701,27 @@ type PeerSyncPacket_ExchangeBundle struct {
 	ExchangeBundle *ExchangeBundleRequest `protobuf:"bytes,2,opt,name=exchange_bundle,json=exchangeBundle,proto3,oneof"`
 }
 
+type PeerSyncPacket_ExchangeBundleResponse struct {
+	ExchangeBundleResponse *ExchangeBundleResponse `protobuf:"bytes,6,opt,name=exchange_bundle_response,json=exchangeBundleResponse,proto3,oneof"`
+}
+
+type PeerSyncPacket_PullPendingRequest struct {
+	PullPendingRequest *PullPendingRequest `protobuf:"bytes,7,opt,name=pull_pending_request,json=pullPendingRequest,proto3,oneof"`
+}
+
+type PeerSyncPacket_PullPendingResponse struct {
+	PullPendingResponse *PullPendingResponse `protobuf:"bytes,8,opt,name=pull_pending_response,json=pullPendingResponse,proto3,oneof"`
+}
+
 func (*PeerSyncPacket_Handshake) isPeerSyncPacket_Payload() {}
 
 func (*PeerSyncPacket_ExchangeBundle) isPeerSyncPacket_Payload() {}
+
+func (*PeerSyncPacket_ExchangeBundleResponse) isPeerSyncPacket_Payload() {}
+
+func (*PeerSyncPacket_PullPendingRequest) isPeerSyncPacket_Payload() {}
+
+func (*PeerSyncPacket_PullPendingResponse) isPeerSyncPacket_Payload() {}
 
 type ExchangeBundleResponse struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
@@ -875,10 +947,18 @@ const file_sync_proto_rawDesc = "" +
 	"\tenvelopes\x18\x04 \x03(\v2\x1e.digitaldelta.v1.RelayEnvelopeR\tenvelopes\"x\n" +
 	"\x15ExchangeBundleRequest\x12*\n" +
 	"\x11target_replica_id\x18\x01 \x01(\tR\x0ftargetReplicaId\x123\n" +
-	"\x06bundle\x18\x02 \x01(\v2\x1b.digitaldelta.v1.SyncBundleR\x06bundle\"\xae\x01\n" +
-	"\x0ePeerSyncPacket\x12>\n" +
+	"\x06bundle\x18\x02 \x01(\v2\x1b.digitaldelta.v1.SyncBundleR\x06bundle\"\xaf\x04\n" +
+	"\x0ePeerSyncPacket\x12%\n" +
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\x12\x1d\n" +
+	"\n" +
+	"rpc_method\x18\x04 \x01(\tR\trpcMethod\x12\x1f\n" +
+	"\vis_response\x18\x05 \x01(\bR\n" +
+	"isResponse\x12>\n" +
 	"\thandshake\x18\x01 \x01(\v2\x1e.digitaldelta.v1.MeshHandshakeH\x00R\thandshake\x12Q\n" +
-	"\x0fexchange_bundle\x18\x02 \x01(\v2&.digitaldelta.v1.ExchangeBundleRequestH\x00R\x0eexchangeBundleB\t\n" +
+	"\x0fexchange_bundle\x18\x02 \x01(\v2&.digitaldelta.v1.ExchangeBundleRequestH\x00R\x0eexchangeBundle\x12c\n" +
+	"\x18exchange_bundle_response\x18\x06 \x01(\v2'.digitaldelta.v1.ExchangeBundleResponseH\x00R\x16exchangeBundleResponse\x12W\n" +
+	"\x14pull_pending_request\x18\a \x01(\v2#.digitaldelta.v1.PullPendingRequestH\x00R\x12pullPendingRequest\x12Z\n" +
+	"\x15pull_pending_response\x18\b \x01(\v2$.digitaldelta.v1.PullPendingResponseH\x00R\x13pullPendingResponseB\t\n" +
 	"\apayload\"\xd5\x01\n" +
 	"\x16ExchangeBundleResponse\x12\x1d\n" +
 	"\n" +
@@ -935,16 +1015,19 @@ var file_sync_proto_depIdxs = []int32{
 	5,  // 7: digitaldelta.v1.ExchangeBundleRequest.bundle:type_name -> digitaldelta.v1.SyncBundle
 	3,  // 8: digitaldelta.v1.PeerSyncPacket.handshake:type_name -> digitaldelta.v1.MeshHandshake
 	6,  // 9: digitaldelta.v1.PeerSyncPacket.exchange_bundle:type_name -> digitaldelta.v1.ExchangeBundleRequest
-	4,  // 10: digitaldelta.v1.PullPendingResponse.envelopes:type_name -> digitaldelta.v1.RelayEnvelope
-	6,  // 11: digitaldelta.v1.SyncService.ExchangeBundle:input_type -> digitaldelta.v1.ExchangeBundleRequest
-	9,  // 12: digitaldelta.v1.SyncService.PullPending:input_type -> digitaldelta.v1.PullPendingRequest
-	8,  // 13: digitaldelta.v1.SyncService.ExchangeBundle:output_type -> digitaldelta.v1.ExchangeBundleResponse
-	10, // 14: digitaldelta.v1.SyncService.PullPending:output_type -> digitaldelta.v1.PullPendingResponse
-	13, // [13:15] is the sub-list for method output_type
-	11, // [11:13] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	8,  // 10: digitaldelta.v1.PeerSyncPacket.exchange_bundle_response:type_name -> digitaldelta.v1.ExchangeBundleResponse
+	9,  // 11: digitaldelta.v1.PeerSyncPacket.pull_pending_request:type_name -> digitaldelta.v1.PullPendingRequest
+	10, // 12: digitaldelta.v1.PeerSyncPacket.pull_pending_response:type_name -> digitaldelta.v1.PullPendingResponse
+	4,  // 13: digitaldelta.v1.PullPendingResponse.envelopes:type_name -> digitaldelta.v1.RelayEnvelope
+	6,  // 14: digitaldelta.v1.SyncService.ExchangeBundle:input_type -> digitaldelta.v1.ExchangeBundleRequest
+	9,  // 15: digitaldelta.v1.SyncService.PullPending:input_type -> digitaldelta.v1.PullPendingRequest
+	8,  // 16: digitaldelta.v1.SyncService.ExchangeBundle:output_type -> digitaldelta.v1.ExchangeBundleResponse
+	10, // 17: digitaldelta.v1.SyncService.PullPending:output_type -> digitaldelta.v1.PullPendingResponse
+	16, // [16:18] is the sub-list for method output_type
+	14, // [14:16] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_sync_proto_init() }
@@ -956,6 +1039,9 @@ func file_sync_proto_init() {
 	file_sync_proto_msgTypes[7].OneofWrappers = []any{
 		(*PeerSyncPacket_Handshake)(nil),
 		(*PeerSyncPacket_ExchangeBundle)(nil),
+		(*PeerSyncPacket_ExchangeBundleResponse)(nil),
+		(*PeerSyncPacket_PullPendingRequest)(nil),
+		(*PeerSyncPacket_PullPendingResponse)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -41,10 +41,13 @@ export type SyncDeltaBundle = {
 };
 
 export type SyncSessionSummary = {
+  accepted_operation_count?: number;
   bytes_estimate: number;
   conflict_count: number;
   merged_count: number;
+  pending_envelope_count?: number;
   record_count: number;
+  rejected_operation_count?: number;
   receipt_count: number;
 };
 

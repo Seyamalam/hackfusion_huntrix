@@ -1,7 +1,15 @@
+import { create } from '@bufbuild/protobuf';
 import { useEffect, useRef, useState } from 'react';
 import { NativeModules, PermissionsAndroid } from 'react-native';
 import type { EmitterSubscription } from 'react-native';
 import type { Device, WifiP2pInfo } from 'rn-wifi-p2p';
+import {
+  ExchangeBundleResponseSchema,
+  PullPendingResponseSchema,
+  type ExchangeBundleRequest,
+  type PullPendingRequest,
+} from '@/src/gen/sync_pb';
+import { createDeviceId } from '@/src/features/auth/auth-utils';
 import {
   applyDeltaBundle,
   buildDeltaBundle,
@@ -17,7 +25,10 @@ import {
 import {
   decodePeerPacket,
   encodeDeltaPacket,
+  encodeExchangeBundleResponsePacket,
   encodeHandshakePacket,
+  encodePullPendingRequestPacket,
+  encodePullPendingResponsePacket,
 } from '@/src/features/sync-demo/sync-protobuf-wire';
 import type { PodReceipt } from '@/src/features/pod/pod-types';
 import {
@@ -34,6 +45,17 @@ import { readRole } from '@/src/features/auth/auth-storage';
 type WifiDirectState = {
   connectionInfo: WifiP2pInfo | null;
   error: string | null;
+  evidence: {
+    exchangeRequestSeen: boolean;
+    exchangeResponseSeen: boolean;
+    handshakeReceived: boolean;
+    handshakeSent: boolean;
+    lastCorrelationId: string | null;
+    lastRpcDirection: 'inbound' | 'outbound' | null;
+    lastRpcMethod: string | null;
+    pullPendingRequestSeen: boolean;
+    pullPendingResponseSeen: boolean;
+  };
   isInitialized: boolean;
   isReady: boolean;
   isReceiving: boolean;
@@ -59,6 +81,17 @@ type WifiDirectState = {
 const INITIAL_STATE: WifiDirectState = {
   connectionInfo: null,
   error: null,
+  evidence: {
+    exchangeRequestSeen: false,
+    exchangeResponseSeen: false,
+    handshakeReceived: false,
+    handshakeSent: false,
+    lastCorrelationId: null,
+    lastRpcDirection: null,
+    lastRpcMethod: null,
+    pullPendingRequestSeen: false,
+    pullPendingResponseSeen: false,
+  },
   isInitialized: false,
   isReady: process.env.EXPO_OS === 'android',
   isReceiving: false,
@@ -73,14 +106,20 @@ const INITIAL_STATE: WifiDirectState = {
   replicaId: 'android-peer',
   sessionSummary: null,
   transportNote:
-    'Wi-Fi Direct is the first credible path for actual phone-to-phone delta sync in this stack.',
+    'Wi-Fi Direct currently carries protobuf SyncService RPC frames over native sockets; full HTTP/2 gRPC on-device still needs deeper native support.',
 };
 
 export function useWifiDirect() {
   const subscriptionsRef = useRef<EmitterSubscription[]>([]);
   const stopReceivingRef = useRef<(() => void) | null>(null);
   const moduleRef = useRef<WifiDirectModule | null>(null);
+  const processedOperationIdsRef = useRef<Set<string>>(new Set());
   const [state, setState] = useState<WifiDirectState>(INITIAL_STATE);
+  const stateRef = useRef<WifiDirectState>(INITIAL_STATE);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     if (process.env.EXPO_OS !== 'android') {
@@ -175,7 +214,7 @@ export function useWifiDirect() {
       stopReceivingRef.current = await wifiDirect.startReceivingMessage(
         { meta: true },
         (message) => {
-          handleIncomingPayload(message.fromAddress, message.message);
+          void handleIncomingPayload(message.fromAddress, message.message);
         },
         {},
       );
@@ -251,8 +290,10 @@ export function useWifiDirect() {
       return;
     }
 
+    const correlationId = createDeviceId();
     const payload = encodeHandshakePacket(
       buildHandshake(state.replicaId, state.localInventory.vector_clock),
+      correlationId,
     );
 
     try {
@@ -260,10 +301,17 @@ export function useWifiDirect() {
       await wifiDirect.sendMessageTo(payload, deviceAddress);
       setState((current) => ({
         ...current,
+        evidence: {
+          ...current.evidence,
+          handshakeSent: true,
+          lastCorrelationId: correlationId,
+          lastRpcDirection: 'outbound',
+          lastRpcMethod: 'MeshHandshake',
+        },
         error: null,
         lastPeerAddress: deviceAddress,
         messages: [
-          `to ${deviceAddress}: handshake sent`,
+          `to ${deviceAddress}: mesh handshake sent (${correlationId.slice(0, 8)})`,
           ...current.messages,
         ].slice(0, 8),
       }));
@@ -288,8 +336,10 @@ export function useWifiDirect() {
     const targetReplica = state.peerClocks[deviceAddress]?.replicaId ?? state.lastHandshakeReplica ?? deviceAddress;
     const knownClock = state.peerClocks[deviceAddress]?.knownClock ?? {};
     const changedRecords = filterChangedRecords([state.localInventory], knownClock);
+    const correlationId = createDeviceId();
     const payload = encodeDeltaPacket(
       buildDeltaBundle(state.replicaId, targetReplica, changedRecords, state.deliveryReceipts),
+      correlationId,
     );
 
     try {
@@ -297,14 +347,27 @@ export function useWifiDirect() {
       await wifiDirect.sendMessageTo(payload, deviceAddress);
       setState((current) => ({
         ...current,
+        evidence: {
+          ...current.evidence,
+          exchangeRequestSeen: true,
+          lastCorrelationId: correlationId,
+          lastRpcDirection: 'outbound',
+          lastRpcMethod: 'SyncService.ExchangeBundle',
+        },
         error: null,
         lastPeerAddress: deviceAddress,
-        messages: [`to ${deviceAddress}: protobuf delta bundle sent`, ...current.messages].slice(0, 8),
+        messages: [
+          `to ${deviceAddress}: ExchangeBundle request sent (${correlationId.slice(0, 8)})`,
+          ...current.messages,
+        ].slice(0, 8),
         sessionSummary: {
+          accepted_operation_count: 0,
           bytes_estimate: payload.length / 2,
           conflict_count: 0,
           merged_count: 0,
+          pending_envelope_count: 0,
           record_count: changedRecords.length,
+          rejected_operation_count: 0,
           receipt_count: state.deliveryReceipts.length,
         },
       }));
@@ -312,6 +375,46 @@ export function useWifiDirect() {
       setState((current) => ({
         ...current,
         error: error instanceof Error ? error.message : 'Failed to send Wi-Fi Direct delta bundle.',
+      }));
+    }
+  }
+
+  async function sendPullPending(deviceAddress: string) {
+    const role = (await readRole()) ?? 'field_volunteer';
+    if (!canPerform(role, 'send_sync')) {
+      setState((current) => ({
+        ...current,
+        error: `Role ${role} cannot pull pending sync messages.`,
+      }));
+      return;
+    }
+
+    const correlationId = createDeviceId();
+    const payload = encodePullPendingRequestPacket(state.replicaId, 16, correlationId);
+
+    try {
+      const wifiDirect = await getWifiDirectModule(moduleRef);
+      await wifiDirect.sendMessageTo(payload, deviceAddress);
+      setState((current) => ({
+        ...current,
+        evidence: {
+          ...current.evidence,
+          lastCorrelationId: correlationId,
+          lastRpcDirection: 'outbound',
+          lastRpcMethod: 'SyncService.PullPending',
+          pullPendingRequestSeen: true,
+        },
+        error: null,
+        lastPeerAddress: deviceAddress,
+        messages: [
+          `to ${deviceAddress}: PullPending request sent (${correlationId.slice(0, 8)})`,
+          ...current.messages,
+        ].slice(0, 8),
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error instanceof Error ? error.message : 'Failed to request pending sync payloads.',
       }));
     }
   }
@@ -326,6 +429,7 @@ export function useWifiDirect() {
     decrementQuantity,
     sendDeltaBundle,
     sendHandshake,
+    sendPullPending,
     stopDiscovery,
   };
 
@@ -341,7 +445,7 @@ export function useWifiDirect() {
     void applyPriority(priority);
   }
 
-  function handleIncomingPayload(fromAddress: string, payload: unknown) {
+  async function handleIncomingPayload(fromAddress: string, payload: unknown) {
     if (typeof payload !== 'string') {
       setState((current) => ({
         ...current,
@@ -372,11 +476,18 @@ export function useWifiDirect() {
         void writePeerClocks(nextPeerClocks);
         return {
           ...current,
+          evidence: {
+            ...current.evidence,
+            handshakeReceived: true,
+            lastCorrelationId: decoded.correlationId,
+            lastRpcDirection: 'inbound',
+            lastRpcMethod: 'MeshHandshake',
+          },
           lastHandshakeReplica: handshake.replica_id,
           lastPeerAddress: fromAddress,
           peerClocks: nextPeerClocks,
           messages: [
-            `from ${fromAddress}: protobuf handshake from ${handshake.replica_id}`,
+            `from ${fromAddress}: mesh handshake from ${handshake.replica_id}`,
             ...current.messages,
           ].slice(0, 8),
         };
@@ -384,34 +495,127 @@ export function useWifiDirect() {
       return;
     }
 
-    if (decoded.kind === 'delta') {
+    if (decoded.kind === 'exchange_request') {
       const bundle: SyncDeltaBundle = decoded.bundle;
-      setState((current) => {
-        const result = applyDeltaBundle(current.localInventory, bundle, current.deliveryReceipts);
-        const nextPeerClocks = {
-          ...current.peerClocks,
-          [fromAddress]: {
-            knownClock:
-              bundle.records[0]?.vector_clock ?? current.peerClocks[fromAddress]?.knownClock ?? {},
-            replicaId: bundle.source_replica,
-          },
-        };
-        void writePeerClocks(nextPeerClocks);
-        persistLocalInventory(result.item);
-        void writePodReceipts(result.receipts);
-        return {
-          ...current,
-          deliveryReceipts: result.receipts,
-          lastPeerAddress: fromAddress,
-          localInventory: result.item,
-          messages: [
-            `from ${fromAddress}: protobuf delta bundle applied`,
-            ...current.messages,
-          ].slice(0, 8),
-          peerClocks: nextPeerClocks,
-          sessionSummary: result.summary,
-        };
+      const snapshot = stateRef.current;
+      const result = applyDeltaBundle(snapshot.localInventory, bundle, snapshot.deliveryReceipts);
+      const exchangeResponse = buildExchangeBundleResponse(decoded.request, snapshot.replicaId);
+      const nextPeerClocks = {
+        ...snapshot.peerClocks,
+        [fromAddress]: {
+          knownClock:
+            bundle.records[0]?.vector_clock ?? snapshot.peerClocks[fromAddress]?.knownClock ?? {},
+          replicaId: bundle.source_replica,
+        },
+      };
+
+      persistLocalInventory(result.item);
+      void writePodReceipts(result.receipts);
+      void writePeerClocks(nextPeerClocks);
+      await sendRpcResponse(fromAddress, encodeExchangeBundleResponsePacket(exchangeResponse, decoded.correlationId));
+
+      setState((current) => ({
+        ...current,
+        deliveryReceipts: result.receipts,
+        evidence: {
+          ...current.evidence,
+          exchangeRequestSeen: true,
+          lastCorrelationId: decoded.correlationId,
+          lastRpcDirection: 'inbound',
+          lastRpcMethod: 'SyncService.ExchangeBundle',
+        },
+        lastPeerAddress: fromAddress,
+        localInventory: result.item,
+        messages: [
+          `from ${fromAddress}: ExchangeBundle request applied (${exchangeResponse.acceptedOperationIds.length} accepted)`,
+          ...current.messages,
+        ].slice(0, 8),
+        peerClocks: nextPeerClocks,
+        sessionSummary: {
+          ...result.summary,
+          accepted_operation_count: exchangeResponse.acceptedOperationIds.length,
+          pending_envelope_count: exchangeResponse.pendingEnvelopeIds.length,
+          rejected_operation_count: exchangeResponse.rejectedOperationIds.length,
+        },
+      }));
+      return;
+    }
+
+    if (decoded.kind === 'exchange_response') {
+      setState((current) => ({
+        ...current,
+        evidence: {
+          ...current.evidence,
+          exchangeResponseSeen: true,
+          lastCorrelationId: decoded.correlationId,
+          lastRpcDirection: 'inbound',
+          lastRpcMethod: 'SyncService.ExchangeBundle',
+        },
+        messages: [
+          `from ${fromAddress}: ExchangeBundle response accepted=${decoded.response.acceptedOperationIds.length} rejected=${decoded.response.rejectedOperationIds.length}`,
+          ...current.messages,
+        ].slice(0, 8),
+        sessionSummary: current.sessionSummary
+          ? {
+              ...current.sessionSummary,
+              accepted_operation_count: decoded.response.acceptedOperationIds.length,
+              pending_envelope_count: decoded.response.pendingEnvelopeIds.length,
+              rejected_operation_count: decoded.response.rejectedOperationIds.length,
+            }
+          : null,
+      }));
+      return;
+    }
+
+    if (decoded.kind === 'pull_pending_request') {
+      const response = create(PullPendingResponseSchema, {
+        envelopes: [],
       });
+      await sendRpcResponse(fromAddress, encodePullPendingResponsePacket(response, decoded.correlationId));
+      setState((current) => ({
+        ...current,
+        evidence: {
+          ...current.evidence,
+          lastCorrelationId: decoded.correlationId,
+          lastRpcDirection: 'inbound',
+          lastRpcMethod: 'SyncService.PullPending',
+          pullPendingRequestSeen: true,
+        },
+        messages: [`from ${fromAddress}: PullPending request answered with 0 envelopes`, ...current.messages].slice(0, 8),
+      }));
+      return;
+    }
+
+    if (decoded.kind === 'pull_pending_response') {
+      setState((current) => ({
+        ...current,
+        evidence: {
+          ...current.evidence,
+          lastCorrelationId: decoded.correlationId,
+          lastRpcDirection: 'inbound',
+          lastRpcMethod: 'SyncService.PullPending',
+          pullPendingResponseSeen: true,
+        },
+        messages: [
+          `from ${fromAddress}: PullPending response returned ${decoded.response.envelopes.length} envelopes`,
+          ...current.messages,
+        ].slice(0, 8),
+        sessionSummary: current.sessionSummary
+          ? {
+              ...current.sessionSummary,
+              pending_envelope_count: decoded.response.envelopes.length,
+            }
+          : {
+              accepted_operation_count: 0,
+              bytes_estimate: 0,
+              conflict_count: 0,
+              merged_count: 0,
+              pending_envelope_count: decoded.response.envelopes.length,
+              record_count: 0,
+              rejected_operation_count: 0,
+              receipt_count: 0,
+            },
+      }));
       return;
     }
   }
@@ -456,6 +660,39 @@ export function useWifiDirect() {
         }),
       ),
     }));
+  }
+
+  function buildExchangeBundleResponse(request: ExchangeBundleRequest, replicaId: string) {
+    const acceptedOperationIds: string[] = [];
+    const rejectedOperationIds: string[] = [];
+
+    for (const operation of request.bundle?.operations ?? []) {
+      if (processedOperationIdsRef.current.has(operation.operationId)) {
+        rejectedOperationIds.push(operation.operationId);
+        continue;
+      }
+      processedOperationIdsRef.current.add(operation.operationId);
+      acceptedOperationIds.push(operation.operationId);
+    }
+
+    return create(ExchangeBundleResponseSchema, {
+      replicaId,
+      acceptedOperationIds,
+      rejectedOperationIds,
+      pendingEnvelopeIds: [],
+    });
+  }
+
+  async function sendRpcResponse(deviceAddress: string, payload: string) {
+    try {
+      const wifiDirect = await getWifiDirectModule(moduleRef);
+      await wifiDirect.sendMessageTo(payload, deviceAddress);
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error instanceof Error ? error.message : 'Failed to send sync RPC response.',
+      }));
+    }
   }
 }
 

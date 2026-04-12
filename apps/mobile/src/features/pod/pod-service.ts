@@ -139,6 +139,7 @@ export async function countersignChallenge(rawValue: string): Promise<PodOutcome
         recipientNonce: response.recipient_nonce,
         recipientTimestampUnixMs: BigInt(Date.parse(response.recipient_timestamp)),
         recipientSignature: hexToBytes(response.recipient_signature),
+        receiptId: response.receipt_id,
       })))}`,
     },
   };
@@ -260,7 +261,7 @@ export function parsePodPayload(rawValue: string): PodOutcome<PodPayload> {
           delivery_id: message.challenge?.deliveryId ?? '',
           kind: 'pod-response',
           payload_hash: bytesToHex(message.challenge?.payloadHash ?? new Uint8Array()),
-          receipt_id: `resp-${message.recipientNodeId}-${message.recipientNonce}`,
+          receipt_id: message.receiptId,
           recipient_device_id: message.recipientNodeId,
           recipient_nonce: message.recipientNonce,
           recipient_pubkey: bytesToHex(message.recipientPublicKey),

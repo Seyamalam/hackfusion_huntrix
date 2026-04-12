@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+
+	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/predictive"
 )
 
 func TestHandlePredictiveStatusReturnsModelMetricsAndPredictions(t *testing.T) {
@@ -33,5 +35,49 @@ func TestHandlePredictiveStatusReturnsModelMetricsAndPredictions(t *testing.T) {
 	}
 	if response.RecomputeMs > 2000 {
 		t.Fatalf("expected predictive evaluation under 2s, got %dms", response.RecomputeMs)
+	}
+}
+
+func TestApplyPredictivePenaltiesChangesRoutingGraph(t *testing.T) {
+	server := NewServer(filepath.Join("..", "..", "..", "..", "data", "sylhet_map.json"), "")
+
+	request := httptest.NewRequest(http.MethodGet, "/api/route/preview", nil)
+	graph, err := server.loadGraph(request)
+	if err != nil {
+		t.Fatalf("load graph: %v", err)
+	}
+
+	status, err := predictive.Evaluate(graph, server.repoRoot())
+	if err != nil {
+		t.Fatalf("predictive evaluate: %v", err)
+	}
+
+	penalized := server.applyPredictivePenalties(graph)
+
+	changed := false
+	for index := range graph.Edges {
+		if graph.Edges[index].ID != penalized.Edges[index].ID {
+			t.Fatalf("edge ordering changed unexpectedly")
+		}
+		if graph.Edges[index].TravelTimeMins != penalized.Edges[index].TravelTimeMins ||
+			graph.Edges[index].BaseWeightMins != penalized.Edges[index].BaseWeightMins ||
+			graph.Edges[index].RiskScore != penalized.Edges[index].RiskScore {
+			changed = true
+			break
+		}
+	}
+
+	highRiskCount := 0
+	for _, prediction := range status.Predictions {
+		if prediction.HighRisk {
+			highRiskCount++
+		}
+	}
+
+	if highRiskCount > 0 && !changed {
+		t.Fatal("expected predictive penalties to modify at least one edge when high-risk predictions exist")
+	}
+	if highRiskCount == 0 && changed {
+		t.Fatal("did not expect routing graph changes when no high-risk predictions exist")
 	}
 }

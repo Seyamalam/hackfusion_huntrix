@@ -56,7 +56,12 @@ export function readCachedSnapshot(): DashboardSnapshot | null {
   }
 
   try {
-    return JSON.parse(raw) as DashboardSnapshot;
+    const parsed = JSON.parse(raw);
+    if (!isDashboardSnapshot(parsed)) {
+      localStorage.removeItem(SNAPSHOT_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     localStorage.removeItem(SNAPSHOT_KEY);
     return null;
@@ -65,4 +70,34 @@ export function readCachedSnapshot(): DashboardSnapshot | null {
 
 export function getApiBaseUrlForDisplay() {
   return getApiBaseUrl();
+}
+
+function isDashboardSnapshot(value: unknown): value is DashboardSnapshot {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const snapshot = value as Partial<DashboardSnapshot>;
+  return (
+    hasObject(snapshot.graph) &&
+    Array.isArray(snapshot.graph.nodes) &&
+    Array.isArray(snapshot.graph.edges) &&
+    hasObject(snapshot.summary) &&
+    Array.isArray(snapshot.summary.route_previews) &&
+    hasObject(snapshot.missions) &&
+    Array.isArray(snapshot.missions.missions) &&
+    hasObject(snapshot.triage) &&
+    hasObject(snapshot.triage.snapshot) &&
+    Array.isArray(snapshot.triage.snapshot.predictions) &&
+    hasObject(snapshot.predictive) &&
+    hasObject(snapshot.predictive.status) &&
+    Array.isArray(snapshot.predictive.status.predictions) &&
+    hasObject(snapshot.fleet) &&
+    hasObject(snapshot.fleet.status) &&
+    typeof snapshot.fetchedAt === "string"
+  );
+}
+
+function hasObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

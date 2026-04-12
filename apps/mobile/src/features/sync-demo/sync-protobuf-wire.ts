@@ -2,14 +2,20 @@ import { create, fromBinary, toBinary } from '@bufbuild/protobuf';
 
 import { DeliveryPriority } from '@/src/gen/common_pb';
 import {
+  ExchangeBundleResponseSchema,
   ExchangeBundleRequestSchema,
   InventoryRecordSchema,
   MeshHandshakeSchema,
   PeerSyncPacketSchema,
+  PullPendingRequestSchema,
+  PullPendingResponseSchema,
   SyncOperationSchema,
+  type ExchangeBundleResponse,
   type ExchangeBundleRequest,
   type InventoryRecord,
   type MeshHandshake,
+  type PullPendingRequest,
+  type PullPendingResponse,
   type SyncOperation,
 } from '@/src/gen/sync_pb';
 import { DeliveryReceiptChainEntrySchema, type DeliveryReceiptChainEntry } from '@/src/gen/delivery_pb';
@@ -19,8 +25,18 @@ import type { InventoryItem, SyncDeltaBundle, SyncHandshake } from '@/src/featur
 
 const ENTITY_TYPE_INVENTORY = 'inventory_record';
 const ENTITY_TYPE_POD_RECEIPT = 'delivery_receipt_chain_entry';
+const METHOD_EXCHANGE_BUNDLE = 'digitaldelta.v1.SyncService/ExchangeBundle';
+const METHOD_PULL_PENDING = 'digitaldelta.v1.SyncService/PullPending';
+const METHOD_MESH_HANDSHAKE = 'digitaldelta.v1.MeshHandshake';
 
-export function encodeHandshakePacket(handshake: SyncHandshake) {
+export type DecodedPeerPacket =
+  | { kind: 'handshake'; correlationId: string; handshake: SyncHandshake }
+  | { kind: 'exchange_request'; correlationId: string; request: ExchangeBundleRequest; bundle: SyncDeltaBundle }
+  | { kind: 'exchange_response'; correlationId: string; response: ExchangeBundleResponse }
+  | { kind: 'pull_pending_request'; correlationId: string; request: PullPendingRequest }
+  | { kind: 'pull_pending_response'; correlationId: string; response: PullPendingResponse };
+
+export function encodeHandshakePacket(handshake: SyncHandshake, correlationId: string) {
   const message = create(MeshHandshakeSchema, {
     deviceLabel: handshake.device_label,
     replicaId: handshake.replica_id,
@@ -29,6 +45,9 @@ export function encodeHandshakePacket(handshake: SyncHandshake) {
   });
 
   const packet = create(PeerSyncPacketSchema, {
+    correlationId,
+    rpcMethod: METHOD_MESH_HANDSHAKE,
+    isResponse: false,
     payload: {
       case: 'handshake',
       value: message,
@@ -38,7 +57,7 @@ export function encodeHandshakePacket(handshake: SyncHandshake) {
   return bytesToHex(toBinary(PeerSyncPacketSchema, packet));
 }
 
-export function encodeDeltaPacket(bundle: SyncDeltaBundle) {
+export function encodeDeltaPacket(bundle: SyncDeltaBundle, correlationId: string) {
   const operations: SyncOperation[] = [
     ...bundle.records.map((record) =>
       createOperation(
@@ -73,6 +92,9 @@ export function encodeDeltaPacket(bundle: SyncDeltaBundle) {
   });
 
   const packet = create(PeerSyncPacketSchema, {
+    correlationId,
+    rpcMethod: METHOD_EXCHANGE_BUNDLE,
+    isResponse: false,
     payload: {
       case: 'exchangeBundle',
       value: request,
@@ -82,21 +104,100 @@ export function encodeDeltaPacket(bundle: SyncDeltaBundle) {
   return bytesToHex(toBinary(PeerSyncPacketSchema, packet));
 }
 
-export function decodePeerPacket(rawHex: string):
-  | { kind: 'handshake'; handshake: SyncHandshake }
-  | { kind: 'delta'; bundle: SyncDeltaBundle }
-  | null {
+export function encodeExchangeBundleResponsePacket(
+  response: ExchangeBundleResponse,
+  correlationId: string,
+) {
+  const packet = create(PeerSyncPacketSchema, {
+    correlationId,
+    rpcMethod: METHOD_EXCHANGE_BUNDLE,
+    isResponse: true,
+    payload: {
+      case: 'exchangeBundleResponse',
+      value: response,
+    },
+  });
+
+  return bytesToHex(toBinary(PeerSyncPacketSchema, packet));
+}
+
+export function encodePullPendingRequestPacket(
+  replicaId: string,
+  maxItems: number,
+  correlationId: string,
+) {
+  const request = create(PullPendingRequestSchema, {
+    replicaId,
+    maxItems,
+  });
+
+  const packet = create(PeerSyncPacketSchema, {
+    correlationId,
+    rpcMethod: METHOD_PULL_PENDING,
+    isResponse: false,
+    payload: {
+      case: 'pullPendingRequest',
+      value: request,
+    },
+  });
+
+  return bytesToHex(toBinary(PeerSyncPacketSchema, packet));
+}
+
+export function encodePullPendingResponsePacket(
+  response: PullPendingResponse,
+  correlationId: string,
+) {
+  const packet = create(PeerSyncPacketSchema, {
+    correlationId,
+    rpcMethod: METHOD_PULL_PENDING,
+    isResponse: true,
+    payload: {
+      case: 'pullPendingResponse',
+      value: response,
+    },
+  });
+
+  return bytesToHex(toBinary(PeerSyncPacketSchema, packet));
+}
+
+export function decodePeerPacket(rawHex: string): DecodedPeerPacket | null {
   const packet = fromBinary(PeerSyncPacketSchema, hexToBytes(rawHex));
+  const correlationId = packet.correlationId;
   if (packet.payload.case === 'handshake') {
     return {
+      correlationId,
       kind: 'handshake',
       handshake: protoToHandshake(packet.payload.value),
     };
   }
   if (packet.payload.case === 'exchangeBundle' && packet.payload.value.bundle) {
     return {
-      kind: 'delta',
+      correlationId,
+      kind: 'exchange_request',
+      request: packet.payload.value,
       bundle: protoToDeltaBundle(packet.payload.value),
+    };
+  }
+  if (packet.payload.case === 'exchangeBundleResponse') {
+    return {
+      correlationId,
+      kind: 'exchange_response',
+      response: packet.payload.value,
+    };
+  }
+  if (packet.payload.case === 'pullPendingRequest') {
+    return {
+      correlationId,
+      kind: 'pull_pending_request',
+      request: packet.payload.value,
+    };
+  }
+  if (packet.payload.case === 'pullPendingResponse') {
+    return {
+      correlationId,
+      kind: 'pull_pending_response',
+      response: packet.payload.value,
     };
   }
   return null;

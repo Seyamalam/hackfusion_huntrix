@@ -110,12 +110,13 @@ eas build -p android --profile development
 ### Current Implementation Scope
 - Android-first `Wi‑Fi Direct` transport candidate
 - BLE remains discovery/readiness only
-- actual sync payloads now include:
-  - handshake
-  - delta bundle
-  - known peer clock
-  - local inventory mutation
-  - merge/apply summary
+- actual sync payloads now include protobuf RPC frames aligned with `SyncService`
+  - mesh handshake frame for peer clock exchange
+  - `ExchangeBundleRequest`
+  - `ExchangeBundleResponse`
+  - `PullPendingRequest`
+  - `PullPendingResponse`
+  - local inventory mutation and merge/apply summary
 
 ### Two-Device Test Steps
 1. Install the dev build on both Android phones.
@@ -128,10 +129,13 @@ eas build -p android --profile development
    - `Set P0` or `Set P3`
 7. Press `Send Handshake`.
 8. Press `Send Delta Bundle`.
+9. Press `Pull Pending`.
 9. Observe:
    - `Session Log`
    - `Last handshake`
    - `Known peer clock`
+   - `Accepted ops`
+   - `Rejected ops`
    - `Records in bundle`
    - `Merged records`
    - `Conflicts`
@@ -140,7 +144,9 @@ eas build -p android --profile development
 - two real devices discover each other
 - connection succeeds
 - handshake is exchanged
-- delta bundle is sent
+- `ExchangeBundleRequest` is sent
+- `ExchangeBundleResponse` is returned
+- `PullPendingRequest` / `PullPendingResponse` are exchanged
 - receiving side applies bundle and updates local state
 - session summary updates with payload size and merge/conflict counts
 
@@ -173,7 +179,8 @@ For the final hackathon demo, plan around `2` physical Android devices.
 - screenshot of conflict state showing both values
 - screenshot of resolution log
 - screenshot/video of two-device Wi‑Fi Direct peer discovery
-- screenshot/video of handshake + delta bundle send/apply
+- screenshot/video of handshake + `ExchangeBundle` send/apply
+- screenshot/video of `PullPending` response
 - payload byte count shown in session summary
 
 ## Current Honest Status
@@ -181,3 +188,14 @@ For the final hackathon demo, plan around `2` physical Android devices.
 - `M2.2`: implemented
 - `M2.3`: implemented
 - `M2.4`: close, but final proof still requires two physical Android devices
+
+## Honest Transport Note
+
+The Wi‑Fi Direct peer channel now carries protobuf RPC frames aligned with the `SyncService` request and response messages.
+
+It is still not a full on-device HTTP/2 gRPC server/client stack.
+
+For judging, be precise:
+- protobuf service messages: yes
+- actual peer-to-peer radio path: yes
+- full native gRPC transport semantics on both phones: not yet

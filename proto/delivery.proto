@@ -53,6 +53,7 @@ message ProofOfDeliveryResponse {
   string recipient_nonce = 4;
   uint64 recipient_timestamp_unix_ms = 5;
   bytes recipient_signature = 6;
+  string receipt_id = 7;
 }
 
 message DeliveryReceiptChainEntry {

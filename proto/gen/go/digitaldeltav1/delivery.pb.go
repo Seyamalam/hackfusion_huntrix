@@ -397,6 +397,7 @@ type ProofOfDeliveryResponse struct {
 	RecipientNonce           string                    `protobuf:"bytes,4,opt,name=recipient_nonce,json=recipientNonce,proto3" json:"recipient_nonce,omitempty"`
 	RecipientTimestampUnixMs uint64                    `protobuf:"varint,5,opt,name=recipient_timestamp_unix_ms,json=recipientTimestampUnixMs,proto3" json:"recipient_timestamp_unix_ms,omitempty"`
 	RecipientSignature       []byte                    `protobuf:"bytes,6,opt,name=recipient_signature,json=recipientSignature,proto3" json:"recipient_signature,omitempty"`
+	ReceiptId                string                    `protobuf:"bytes,7,opt,name=receipt_id,json=receiptId,proto3" json:"receipt_id,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -471,6 +472,13 @@ func (x *ProofOfDeliveryResponse) GetRecipientSignature() []byte {
 		return x.RecipientSignature
 	}
 	return nil
+}
+
+func (x *ProofOfDeliveryResponse) GetReceiptId() string {
+	if x != nil {
+		return x.ReceiptId
+	}
+	return ""
 }
 
 type DeliveryReceiptChainEntry struct {
@@ -793,14 +801,16 @@ const file_delivery_proto_rawDesc = "" +
 	"\x13received_at_unix_ms\x18\x05 \x01(\x04R\x10receivedAtUnixMs\x12%\n" +
 	"\x0echallenge_hash\x18\x06 \x01(\fR\rchallengeHash\x12-\n" +
 	"\x12receiver_signature\x18\a \x01(\fR\x11receiverSignature\x12)\n" +
-	"\x10sender_signature\x18\b \x01(\fR\x0fsenderSignature\"\xd9\x02\n" +
+	"\x10sender_signature\x18\b \x01(\fR\x0fsenderSignature\"\xf8\x02\n" +
 	"\x17ProofOfDeliveryResponse\x12G\n" +
 	"\tchallenge\x18\x01 \x01(\v2).digitaldelta.v1.ProofOfDeliveryChallengeR\tchallenge\x12*\n" +
 	"\x11recipient_node_id\x18\x02 \x01(\tR\x0frecipientNodeId\x120\n" +
 	"\x14recipient_public_key\x18\x03 \x01(\fR\x12recipientPublicKey\x12'\n" +
 	"\x0frecipient_nonce\x18\x04 \x01(\tR\x0erecipientNonce\x12=\n" +
 	"\x1brecipient_timestamp_unix_ms\x18\x05 \x01(\x04R\x18recipientTimestampUnixMs\x12/\n" +
-	"\x13recipient_signature\x18\x06 \x01(\fR\x12recipientSignature\"\xd8\x05\n" +
+	"\x13recipient_signature\x18\x06 \x01(\fR\x12recipientSignature\x12\x1d\n" +
+	"\n" +
+	"receipt_id\x18\a \x01(\tR\treceiptId\"\xd8\x05\n" +
 	"\x19DeliveryReceiptChainEntry\x12\x1d\n" +
 	"\n" +
 	"receipt_id\x18\x01 \x01(\tR\treceiptId\x12\x1f\n" +
