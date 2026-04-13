@@ -1,0 +1,45 @@
+digraph RouteDecayMethodology {
+  graph [
+    rankdir=LR,
+    splines=ortho,
+    pad=0.25,
+    nodesep=0.5,
+    ranksep=0.7,
+    bgcolor="#ffffff",
+    fontname="Helvetica"
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    fontname="Helvetica",
+    fontsize=11,
+    color="#d5dee6",
+    fillcolor="#f8fbfd",
+    margin="0.18,0.12"
+  ];
+
+  edge [
+    fontname="Helvetica",
+    fontsize=9,
+    color="#486270",
+    arrowsize=0.8
+  ];
+
+  rainfall [label="Rainfall feed\n1 Hz CSV sensor stream", fillcolor="#e7f5fb", color="#89c7df"];
+  context [label="Edge context\nElevation + soil saturation proxy", fillcolor="#eef6f0", color="#9dc9b1"];
+  features [label="Feature engineering\ncumulative rainfall\nrate change\nelevation\nsoil proxy", fillcolor="#fdf0d6", color="#e4b86c"];
+  training [label="Training pipeline\n80/20 split\nstandardization\nlogistic regression", fillcolor="#f5e8fa", color="#c89de0"];
+  metrics [label="Evaluation\nPrecision 1.0\nRecall 0.8333\nF1 0.9091", fillcolor="#fbe9df", color="#dca388"];
+  artifact [label="Exported artifact\nJSON coefficients\nthreshold 0.7", fillcolor="#e8eefb", color="#9bb5e0"];
+  backend [label="Go runtime\npredictive penalty engine", fillcolor="#eef4f7", color="#9db9c8"];
+  mobile [label="Expo runtime\non-device JS inference", fillcolor="#eef4f7", color="#9db9c8"];
+
+  rainfall -> features [label="time-series input"];
+  context -> features [label="static edge context"];
+  features -> training [label="training rows"];
+  training -> metrics [label="test split evaluation"];
+  training -> artifact [label="export coefficients"];
+  artifact -> backend [label="backend scoring"];
+  artifact -> mobile [label="mobile scoring"];
+}

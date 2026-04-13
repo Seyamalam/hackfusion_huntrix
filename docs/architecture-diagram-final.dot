@@ -1,0 +1,124 @@
+digraph HuntrixDeltaArchitecture {
+  graph [
+    rankdir=LR,
+    splines=ortho,
+    pad=0.35,
+    nodesep=0.55,
+    ranksep=0.75,
+    bgcolor="#f4f8fc",
+    fontname="Helvetica"
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    fontname="Helvetica",
+    fontsize=11,
+    color="#c9d8e2",
+    fillcolor="white",
+    margin="0.16,0.12"
+  ];
+
+  edge [
+    fontname="Helvetica",
+    fontsize=9,
+    color="#486270",
+    arrowsize=0.8
+  ];
+
+  subgraph cluster_mobile {
+    label="Expo Mobile Node";
+    color="#89c7df";
+    style="rounded,filled";
+    fillcolor="#e7f5fb";
+
+    mobile_auth [label="Auth + OTP"];
+    mobile_crdt [label="CRDT Store"];
+    mobile_pod [label="PoD QR"];
+    mobile_sync [label="Wi-Fi Direct Peer Sync"];
+    mobile_mesh [label="Mesh Relay Demo"];
+    mobile_ml [label="On-Device Risk Inference"];
+  }
+
+  subgraph cluster_core {
+    label="Go Core";
+    color="#e4b86c";
+    style="rounded,filled";
+    fillcolor="#fdf0d6";
+
+    core_http [label="HTTP API"];
+    core_grpc [label="gRPC API"];
+    core_route [label="Routing Engine"];
+    core_predictive [label="Predictive Penalty Engine"];
+    core_triage [label="Triage Engine"];
+    core_fleet [label="Fleet / Handoff Engine"];
+    core_sync [label="Inventory Sync Demo"];
+  }
+
+  subgraph cluster_shared {
+    label="Contracts + Data";
+    color="#9dc9b1";
+    style="rounded,filled";
+    fillcolor="#e8f3ea";
+
+    shared_proto [label="Proto Contracts"];
+    shared_scenario [label="Sylhet Scenario Data"];
+    shared_ml [label="ML Artifacts"];
+  }
+
+  subgraph cluster_sim {
+    label="Simulation";
+    color="#c89de0";
+    style="rounded,filled";
+    fillcolor="#f5e8fa";
+
+    chaos [label="Chaos Simulator"];
+  }
+
+  subgraph cluster_dashboard {
+    label="Route Deck";
+    color="#dca388";
+    style="rounded,filled";
+    fillcolor="#fbe9df";
+
+    dashboard [label="Vite + React + Leaflet"];
+  }
+
+  mobile_auth -> mobile_crdt;
+  mobile_crdt -> mobile_pod;
+  mobile_crdt -> mobile_sync [label="local-first delta sync"];
+  mobile_crdt -> mobile_mesh [label="relay envelopes"];
+  mobile_ml -> mobile_crdt [label="risk output"];
+
+  mobile_sync -> mobile_sync [label="Wi-Fi Direct native socket transport\ncarrying protobuf SyncService RPC frames", color="#1d5a7b", fontcolor="#1d5a7b"];
+
+  mobile_crdt -> core_http [label="HTTP + JSON"];
+  mobile_pod -> core_sync [label="receipt flow"];
+
+  core_http -> core_route;
+  core_http -> core_predictive;
+  core_http -> core_triage;
+  core_http -> core_fleet;
+
+  core_grpc -> core_route [label="gRPC + Protobuf"];
+  core_grpc -> core_sync [label="gRPC + Protobuf"];
+
+  chaos -> core_http [label="HTTP + JSON"];
+
+  shared_proto -> mobile_sync [label="proto/"];
+  shared_proto -> core_grpc [label="proto/"];
+  shared_scenario -> core_route;
+  shared_ml -> core_predictive;
+
+  core_http -> dashboard [label="HTTP + JSON"];
+
+  cap_note [
+    shape=note,
+    style="filled",
+    fillcolor="#eef6fa",
+    color="#8bc9df",
+    label="CAP choice: AP\nAvailability + Partition Tolerance.\nNodes keep operating while partitioned\nand reconcile later via CRDT merge rules."
+  ];
+
+  core_sync -> cap_note [style=dashed, arrowhead=none];
+}
