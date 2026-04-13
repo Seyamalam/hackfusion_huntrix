@@ -257,19 +257,30 @@ h2 {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.85fr);
-  gap: 22px;
+  grid-template-columns: 1fr;
+  gap: 18px;
   margin-top: 22px;
+  align-items: start;
 }
 
-.side-column {
+.board-grid {
   display: grid;
-  gap: 22px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-content: start;
+}
+
+.board-grid .panel {
+  height: 100%;
+}
+
+.board-span-wide {
+  grid-column: span 3;
 }
 
 .panel {
   border-radius: 24px;
-  padding: 20px;
+  padding: 18px;
 }
 
 .panel-header {
@@ -309,13 +320,13 @@ h2 {
 .map-frame {
   overflow: hidden;
   border-radius: 20px;
-  min-height: 680px;
+  min-height: 560px;
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .leaflet-root {
   width: 100%;
-  height: 680px;
+  height: 560px;
 }
 
 .leaflet-container {
@@ -377,7 +388,7 @@ h2 {
 
 .route-card,
 .failure-card {
-  padding: 14px;
+  padding: 12px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -454,7 +465,7 @@ h2 {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-size: 0.85rem;
   color: var(--muted);
 }
@@ -521,6 +532,26 @@ h2 {
   font-size: 0.88rem;
 }
 
+.board-grid .panel-header h2 {
+  font-size: 1.35rem;
+}
+
+.board-grid .route-list,
+.board-grid .failure-list {
+  gap: 10px;
+}
+
+.board-grid .route-card p,
+.board-grid .failure-card p {
+  margin: 0.15rem 0 0;
+}
+
+.board-grid .route-card strong,
+.board-grid .failure-card strong {
+  display: block;
+  line-height: 1.22;
+}
+
 .sr-summary {
   position: absolute;
   width: 1px;
@@ -541,8 +572,13 @@ code {
 @media (max-width: 1100px) {
   .command-ribbon,
   .hero,
-  .dashboard-grid {
+  .dashboard-grid,
+  .board-grid {
     grid-template-columns: 1fr;
+  }
+
+  .board-span-wide {
+    grid-column: auto;
   }
 
   .map-frame,
@@ -572,7 +608,8 @@ code {
   }
 
   .command-ribbon,
-  .heatmap-grid {
+  .heatmap-grid,
+  .board-grid {
     grid-template-columns: 1fr;
   }
 }

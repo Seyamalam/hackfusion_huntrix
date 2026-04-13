@@ -358,8 +358,8 @@ function App() {
           </div>
         </article>
 
-        <aside className="side-column">
-          <article className="panel metrics-panel">
+        <section className="board-grid">
+          <article className="panel metrics-panel board-span-wide">
             <div className="panel-header compact">
               <div>
                 <p className="panel-kicker">Situation</p>
@@ -380,7 +380,7 @@ function App() {
             {error ? <p className="warning-banner">Live refresh error: {error}</p> : null}
           </article>
 
-          <article className="panel routes-panel" aria-label="Supply inventory heatmap">
+          <article className="panel routes-panel board-span-wide" aria-label="Supply inventory heatmap">
             <div className="panel-header compact">
               <div>
                 <p className="panel-kicker">Inventory Heat</p>
@@ -421,7 +421,7 @@ function App() {
             </div>
           </article>
 
-          <article className="panel routes-panel">
+          <article className="panel routes-panel board-span-wide">
             <div className="panel-header compact">
               <div>
                 <p className="panel-kicker">Module 8</p>
@@ -699,7 +699,7 @@ function App() {
               )}
             </div>
           </article>
-        </aside>
+        </section>
       </section>
     </main>
   );
