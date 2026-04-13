@@ -24,6 +24,7 @@
         "NEARBY_WIFI_DEVICES"
       ],
       "package": "com.seyamalam.huntrixdelta",
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#163240"

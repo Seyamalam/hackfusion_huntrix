@@ -2,10 +2,13 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import React from 'react';
 import { Link, Tabs } from 'expo-router';
 import { Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { palette } from '@/src/theme/palette';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -13,6 +16,9 @@ export default function TabLayout() {
         headerShadowVisible: false,
         headerTintColor: palette.textPrimary,
         headerTitleStyle: { fontWeight: '700' },
+        headerRightContainerStyle: {
+          paddingRight: Math.max(insets.right, 10) + 8,
+        },
         headerRight: () => (
           <Link href="/modal" asChild>
             <Pressable
@@ -20,7 +26,6 @@ export default function TabLayout() {
               accessibilityLabel="Open settings"
               accessibilityRole="button"
               style={({ pressed }) => ({
-                marginRight: 14,
                 borderRadius: 999,
                 padding: 10,
                 backgroundColor: pressed ? palette.surfaceStrong : 'transparent',
@@ -32,6 +37,7 @@ export default function TabLayout() {
         ),
         sceneStyle: { backgroundColor: palette.canvas },
         tabBarActiveTintColor: palette.alert,
+        tabBarHideOnKeyboard: true,
         tabBarInactiveTintColor: palette.textMuted,
         tabBarStyle: {
           backgroundColor: palette.shell,
