@@ -7,6 +7,7 @@ import { HeroBanner } from '@/src/components/ui/hero-banner';
 import { InfoRow } from '@/src/components/ui/info-row';
 import { SectionCard } from '@/src/components/ui/section-card';
 import { StatusPill } from '@/src/components/ui/status-pill';
+import { SyncStateStrip } from '@/src/components/ui/sync-state-strip';
 import { canPerform } from '@/src/features/auth/auth-rbac';
 import { readRole } from '@/src/features/auth/auth-storage';
 import {
@@ -16,6 +17,7 @@ import {
   runInventoryScenario,
   type InventoryDemoState,
 } from '@/src/features/sync-demo/sync-demo-api';
+import { useBackendReconnect } from '@/src/hooks/use-backend-reconnect';
 import { PodDemoPanel } from '@/src/features/pod/pod-demo-panel';
 import { palette } from '@/src/theme/palette';
 
@@ -23,19 +25,19 @@ export default function DeliveriesScreen() {
   const [demo, setDemo] = useState<InventoryDemoState | null>(null);
   const [status, setStatus] = useState<string>('Loading inventory sync demo...');
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchInventoryDemoState(controller.signal)
-      .then((state) => {
-        setDemo(state);
-        setStatus('Inventory sync demo loaded from the Go API.');
-      })
-      .catch((error: unknown) => {
+  const reconnect = useBackendReconnect(
+    async (signal) => {
+      const state = await fetchInventoryDemoState(signal);
+      setDemo(state);
+      setStatus('Inventory sync demo loaded from the Go API.');
+    },
+    {
+      onError: (error) => {
         setStatus(error instanceof Error ? error.message : 'Failed to load inventory sync demo');
-      });
-
-    return () => controller.abort();
-  }, []);
+      },
+      onSuccess: () => undefined,
+    },
+  );
 
   async function runScenario(scenario: 'causal' | 'conflict') {
     const role = (await readRole()) ?? 'field_volunteer';
@@ -83,10 +85,28 @@ export default function DeliveriesScreen() {
             tone={demo?.current.conflicts.length ? 'alert' : 'success'}
           />
           <StatusPill label={`Logs ${demo?.resolution_log.length ?? 0}`} tone="neutral" />
+          <ActionChip
+            label={reconnect.isRefreshing ? 'Reconnecting…' : 'Reconnect'}
+            onPress={reconnect.reconnect}
+            tone="default"
+            accessibilityHint="Retry the inventory demo request."
+          />
         </HeroBanner>
       </AnimatedPanel>
 
       <AnimatedPanel index={1}>
+        <SyncStateStrip
+          eyebrow="Sync Feedback"
+          items={[
+            { label: 'Offline', value: reconnect.backendState === 'fallback' ? 'Using last local view' : 'Replica local', tone: reconnect.backendState === 'fallback' ? 'warning' : 'success' },
+            { label: 'Syncing', value: reconnect.isRefreshing ? 'Auto reconnecting' : demo?.scenario === 'baseline' ? 'Waiting for delta' : 'Merge story active', tone: reconnect.isRefreshing ? 'info' : demo?.scenario === 'baseline' ? 'neutral' : 'info' },
+            { label: 'Conflict', value: demo?.current.conflicts.length ? 'Detected' : 'Cleared', tone: demo?.current.conflicts.length ? 'alert' : 'success' },
+            { label: 'Verified', value: reconnect.lastSuccessAt ? `Backend ${new Date(reconnect.lastSuccessAt).toLocaleTimeString()}` : demo?.resolution_log.length ? 'Decision logged' : 'No resolution yet', tone: reconnect.lastSuccessAt || demo?.resolution_log.length ? 'success' : 'warning' },
+          ]}
+        />
+      </AnimatedPanel>
+
+      <AnimatedPanel index={2}>
         <SectionCard
           eyebrow="Actions"
           title="Drive the merge story"
@@ -107,7 +127,7 @@ export default function DeliveriesScreen() {
 
       {demo ? (
         <>
-          <AnimatedPanel index={2}>
+      <AnimatedPanel index={3}>
             <SectionCard
               eyebrow={demo.current.id}
               title={`${demo.current.name} merged state`}
@@ -133,7 +153,7 @@ export default function DeliveriesScreen() {
             </SectionCard>
           </AnimatedPanel>
 
-          <AnimatedPanel index={3}>
+          <AnimatedPanel index={4}>
             <SectionCard
               eyebrow="Replicas"
               title="Disconnected device views"
@@ -157,7 +177,7 @@ export default function DeliveriesScreen() {
           </AnimatedPanel>
 
           {demo.current.conflicts.map((conflict, index) => (
-            <AnimatedPanel key={conflict.field} index={4 + index}>
+            <AnimatedPanel key={conflict.field} index={5 + index}>
               <SectionCard
                 eyebrow="Conflict"
                 title={conflict.field}
@@ -171,7 +191,7 @@ export default function DeliveriesScreen() {
             </AnimatedPanel>
           ))}
 
-      <AnimatedPanel index={6}>
+      <AnimatedPanel index={8}>
         <SectionCard
           eyebrow="Resolution Log"
           title="Manual decisions"

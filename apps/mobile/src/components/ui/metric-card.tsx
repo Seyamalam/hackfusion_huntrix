@@ -11,6 +11,8 @@ type MetricCardProps = {
 export function MetricCard({ label, value, detail }: MetricCardProps) {
   return (
     <View
+      accessible
+      accessibilityLabel={`${label} ${value}. ${detail}`}
       style={{
         minWidth: 156,
         flexGrow: 1,
@@ -18,7 +20,7 @@ export function MetricCard({ label, value, detail }: MetricCardProps) {
         borderRadius: 24,
         borderCurve: 'continuous',
         borderWidth: 1,
-        borderColor: palette.border,
+        borderColor: palette.borderStrong,
         backgroundColor: palette.surface,
         padding: 16,
       }}

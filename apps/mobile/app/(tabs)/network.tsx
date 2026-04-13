@@ -7,6 +7,7 @@ import { HeroBanner } from '@/src/components/ui/hero-banner';
 import { InfoRow } from '@/src/components/ui/info-row';
 import { SectionCard } from '@/src/components/ui/section-card';
 import { StatusPill } from '@/src/components/ui/status-pill';
+import { SyncStateStrip } from '@/src/components/ui/sync-state-strip';
 import {
   fetchFleetOrchestrationStatus,
   fetchNetworkStatus,
@@ -20,6 +21,7 @@ import { MeshThrottlePanel } from '@/src/features/fleet/mesh-throttle-panel';
 import { useMeshThrottle } from '@/src/features/fleet/use-mesh-throttle';
 import { useMeshDemo } from '@/src/features/mesh/use-mesh-demo';
 import { useWifiDirect } from '@/src/features/wifi-direct/use-wifi-direct';
+import { useBackendReconnect } from '@/src/hooks/use-backend-reconnect';
 import { palette } from '@/src/theme/palette';
 
 export default function NetworkScreen() {
@@ -34,28 +36,25 @@ export default function NetworkScreen() {
     backgroundPollIntervalSeconds: throttle.adjusted_interval_seconds,
   });
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    Promise.all([
-      fetchNetworkStatus(controller.signal),
-      fetchFleetOrchestrationStatus(controller.signal),
-    ])
-      .then(([nextNetwork, nextFleet]) => {
-        setNetwork(nextNetwork);
-        setFleet(nextFleet);
-        setError(null);
-      })
-      .catch((fetchError: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-
+  const reconnect = useBackendReconnect(
+    async (signal) => {
+      const [nextNetwork, nextFleet] = await Promise.all([
+        fetchNetworkStatus(signal),
+        fetchFleetOrchestrationStatus(signal),
+      ]);
+      setNetwork(nextNetwork);
+      setFleet(nextFleet);
+      setError(null);
+    },
+    {
+      onError: (fetchError) => {
         setError(fetchError instanceof Error ? fetchError.message : 'Failed to load network state');
-      });
-
-    return () => controller.abort();
-  }, []);
+      },
+      onSuccess: () => {
+        setError(null);
+      },
+    },
+  );
 
   const liveNetwork = network ?? networkFallback;
   const liveFleet = fleet ?? fleetFallback;
@@ -79,10 +78,28 @@ export default function NetworkScreen() {
           <StatusPill label={`${liveNetwork.nodes.length} nodes`} tone="info" />
           <StatusPill label={`${liveNetwork.edges.length} edges`} tone="neutral" />
           <StatusPill label={ble.isReady ? ble.bleState : 'BLE unavailable'} tone={ble.isReady ? 'success' : 'warning'} />
+          <ActionChip
+            label={reconnect.isRefreshing ? 'Reconnecting…' : 'Reconnect'}
+            onPress={reconnect.reconnect}
+            tone="default"
+            accessibilityHint="Retry backend network and fleet status requests."
+          />
         </HeroBanner>
       </AnimatedPanel>
 
       <AnimatedPanel index={1}>
+        <SyncStateStrip
+          eyebrow="Transport State"
+          items={[
+            { label: 'Offline', value: wifiDirect.connectionInfo?.groupFormed ? 'Peer channel local' : 'No internet required', tone: 'success' },
+            { label: 'Syncing', value: reconnect.isRefreshing ? 'Auto reconnecting backend' : wifiDirect.evidence.exchangeRequestSeen ? 'Bundle exchange active' : 'Handshake pending', tone: reconnect.isRefreshing ? 'info' : wifiDirect.evidence.exchangeRequestSeen ? 'info' : 'warning' },
+            { label: 'Conflict', value: (wifiDirect.sessionSummary?.conflict_count ?? 0) > 0 ? 'Detected on merge' : 'No sync conflict', tone: (wifiDirect.sessionSummary?.conflict_count ?? 0) > 0 ? 'alert' : 'neutral' },
+            { label: 'Verified', value: reconnect.lastSuccessAt ? `Backend ${new Date(reconnect.lastSuccessAt).toLocaleTimeString()}` : wifiDirect.evidence.exchangeResponseSeen ? 'Ack received' : 'Awaiting ack', tone: reconnect.lastSuccessAt || wifiDirect.evidence.exchangeResponseSeen ? 'success' : 'warning' },
+          ]}
+        />
+      </AnimatedPanel>
+
+      <AnimatedPanel index={2}>
         <SectionCard
           eyebrow="M2.4"
           title="BLE transport scaffold"
@@ -103,7 +120,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={2}>
+      <AnimatedPanel index={3}>
         <SectionCard
           eyebrow="M2.4 Candidate"
           title="Wi-Fi Direct transport scaffold"
@@ -135,7 +152,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={3}>
+      <AnimatedPanel index={4}>
         <SectionCard
           eyebrow="Judge Proof"
           title="Peer transport evidence"
@@ -174,7 +191,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={4}>
+      <AnimatedPanel index={5}>
         <SectionCard
           eyebrow="Wi-Fi Direct"
           title="Peer transport candidates"
@@ -217,7 +234,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={5}>
+      <AnimatedPanel index={6}>
         <SectionCard
           eyebrow="Local Replica"
           title="Current sync payload state"
@@ -267,7 +284,7 @@ export default function NetworkScreen() {
       </AnimatedPanel>
 
       {wifiDirect.sessionSummary ? (
-        <AnimatedPanel index={6}>
+        <AnimatedPanel index={7}>
           <SectionCard
             eyebrow="Session Summary"
             title="Latest delta application result"
@@ -301,7 +318,7 @@ export default function NetworkScreen() {
       ) : null}
 
       {wifiDirect.messages.length > 0 ? (
-        <AnimatedPanel index={7}>
+        <AnimatedPanel index={8}>
           <SectionCard
             eyebrow="Session Log"
             title="Wi-Fi Direct message activity"
@@ -335,11 +352,11 @@ export default function NetworkScreen() {
         </AnimatedPanel>
       ) : null}
 
-      <AnimatedPanel index={8}>
+      <AnimatedPanel index={9}>
         <MeshThrottlePanel throttle={throttle} backgroundPollCount={wifiDirect.backgroundPollCount} />
       </AnimatedPanel>
 
-      <AnimatedPanel index={9}>
+      <AnimatedPanel index={10}>
         <SectionCard
           eyebrow="Module 3"
           title="Store-and-forward mesh relay"
@@ -361,8 +378,8 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={10}>
-        <SectionCard
+        <AnimatedPanel index={11}>
+          <SectionCard
           eyebrow="Mesh Nodes"
           title="Automatic client / relay roles"
           description="Role assignment is recalculated from battery, signal strength, and proximity. Changes are logged automatically."
@@ -398,7 +415,7 @@ export default function NetworkScreen() {
       </AnimatedPanel>
 
       {mesh.envelopes.length > 0 ? (
-        <AnimatedPanel index={11}>
+        <AnimatedPanel index={12}>
           <SectionCard
             eyebrow="Relay Envelope"
             title="Encrypted packet state"
@@ -421,7 +438,7 @@ export default function NetworkScreen() {
       ) : null}
 
       {mesh.packetInspection ? (
-        <AnimatedPanel index={12}>
+        <AnimatedPanel index={13}>
           <SectionCard
             eyebrow="Packet Inspection"
             title="Relay cannot read payload"
@@ -437,7 +454,7 @@ export default function NetworkScreen() {
       ) : null}
 
       {mesh.events.length > 0 ? (
-        <AnimatedPanel index={13}>
+        <AnimatedPanel index={14}>
           <SectionCard
             eyebrow="Mesh Log"
             title="Relay and role-switch events"
@@ -473,7 +490,7 @@ export default function NetworkScreen() {
         </AnimatedPanel>
       ) : null}
 
-      <AnimatedPanel index={14}>
+      <AnimatedPanel index={15}>
         <SectionCard
           eyebrow="Native BLE"
           title="Discovered nearby devices"
@@ -511,7 +528,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={15}>
+      <AnimatedPanel index={16}>
         <SectionCard
           eyebrow="Topology"
           title="Relief nodes in the current scenario"

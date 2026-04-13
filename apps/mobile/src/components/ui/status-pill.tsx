@@ -20,11 +20,15 @@ const toneMap: Record<StatusTone, { background: string; text: string }> = {
 export function StatusPill({ label, tone }: StatusPillProps) {
   return (
     <View
+      accessible
+      accessibilityLabel={label}
       style={{
         borderRadius: 999,
         backgroundColor: toneMap[tone].background,
         paddingHorizontal: 12,
         paddingVertical: 8,
+        borderWidth: 1,
+        borderColor: '#ffffff55',
       }}
     >
       <Text selectable style={{ color: toneMap[tone].text, fontSize: 13, fontWeight: '700' }}>

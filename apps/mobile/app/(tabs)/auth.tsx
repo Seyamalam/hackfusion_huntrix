@@ -6,6 +6,7 @@ import { HeroBanner } from '@/src/components/ui/hero-banner';
 import { InfoRow } from '@/src/components/ui/info-row';
 import { SectionCard } from '@/src/components/ui/section-card';
 import { StatusPill } from '@/src/components/ui/status-pill';
+import { SyncStateStrip } from '@/src/components/ui/sync-state-strip';
 import { AuthLogCard } from '@/src/features/auth/components/auth-log-card';
 import { OtpCard } from '@/src/features/auth/components/otp-card';
 import { permissionMatrix } from '@/src/features/auth/auth-rbac';
@@ -54,6 +55,18 @@ export default function AuthScreen() {
       </AnimatedPanel>
 
       <AnimatedPanel index={1}>
+        <SyncStateStrip
+          eyebrow="Operator State"
+          items={[
+            { label: 'Offline', value: 'Auth active', tone: 'success' },
+            { label: 'Syncing', value: 'Deferred by design', tone: 'neutral' },
+            { label: 'Conflict', value: auth.compromised ? 'Tamper detected' : 'None', tone: auth.compromised ? 'alert' : 'neutral' },
+            { label: 'Verified', value: auth.compromised ? 'Audit failed' : 'Audit intact', tone: auth.compromised ? 'warning' : 'success' },
+          ]}
+        />
+      </AnimatedPanel>
+
+      <AnimatedPanel index={2}>
         <SectionCard
           eyebrow="Key Pair"
           title="Per-device Ed25519 identity"
@@ -70,7 +83,7 @@ export default function AuthScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={2}>
+      <AnimatedPanel index={3}>
         <OtpCard
           title="Offline TOTP"
           code={snapshot.code}
@@ -80,7 +93,7 @@ export default function AuthScreen() {
         />
       </AnimatedPanel>
 
-      <AnimatedPanel index={3}>
+      <AnimatedPanel index={4}>
         <OtpCard
           title="Offline HOTP"
           code={auth.hotpCode ?? '------'}
@@ -90,7 +103,7 @@ export default function AuthScreen() {
         />
       </AnimatedPanel>
 
-      <AnimatedPanel index={4}>
+      <AnimatedPanel index={5}>
         <SectionCard
           eyebrow="RBAC"
           title="Named role assignment"
@@ -99,6 +112,8 @@ export default function AuthScreen() {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {auth.availableRoles.map((role) => (
               <Pressable
+                accessibilityLabel={`Switch role to ${role.replaceAll('_', ' ')}`}
+                accessibilityRole="button"
                 key={role}
                 onPress={() => auth.selectRole(role)}
                 style={{
@@ -117,7 +132,7 @@ export default function AuthScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={5}>
+      <AnimatedPanel index={6}>
         <SectionCard
           eyebrow="Permissions"
           title="RBAC data-layer policy"
@@ -149,7 +164,7 @@ export default function AuthScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={6}>
+      <AnimatedPanel index={7}>
         <SectionCard
           eyebrow="Login Demo"
           title="OTP verification and tamper checks"
@@ -167,7 +182,7 @@ export default function AuthScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={7}>
+      <AnimatedPanel index={8}>
         <SectionCard
           eyebrow="Audit Trail"
           title="Hash-chained auth events"

@@ -67,10 +67,7 @@ Android profiling capture:
 - [x] Add autonomous triage prediction and preemption across the route dashboard and app
 - [x] Add predictive route decay with trained ML artifacts, penalized rerouting, and risk overlays
 - [x] Add hybrid fleet orchestration with drone-required zones, rendezvous logic, live mobile handoff execution, and telemetry-driven mesh throttling
-- [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
-- [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [x] Add `DEMO.md` and model-card source docs
-- [ ] Add remaining submission assets
 
 ## Scope Correction
 The restored Module 1 and Module 2 page changes the plan in one important way:
@@ -111,6 +108,11 @@ If the app is running on a physical phone, set the backend host explicitly:
 cd apps/mobile
 $env:EXPO_PUBLIC_API_BASE_URL="http://YOUR_COMPUTER_LAN_IP:8080"
 bun run start
+```
+
+Quick check Wi-Fi IP:
+```powershell
+(Get-NetIPAddress -InterfaceAlias Wi-Fi -AddressFamily IPv4).IPAddress
 ```
 
 For native BLE testing in a dev build:
@@ -182,7 +184,7 @@ curl -X POST "http://127.0.0.1:8080/api/sync/inventory/resolve?choice=remote"
 curl -X POST http://127.0.0.1:8080/api/sync/inventory/reset
 ```
 
-Judge proof docs:
+Judge docs:
 - `DEMO.md`
 - `docs/qa/M2-QA.md`
 - `docs/compliance/M2-transport-proof.md`
@@ -204,23 +206,8 @@ powershell -ExecutionPolicy Bypass -File scripts/generate-proto.ps1
 
 Direct mobile sync packets now use protobuf `SyncService` RPC frames over the Wi-Fi Direct native socket transport. JSON is retained only for local storage and the developer-facing dashboard APIs.
 
-This closes the schema-drift problem and aligns the payloads with the checked-in service contract, but it is still not the same as running a full HTTP/2 gRPC stack directly on both phones.
-
-If Go dependency fetch is blocked on your network, the generator still emits the `.pb.go` and `.ts` files, but `go mod tidy` may need to be retried later.
-
 ## GitHub Actions
 
 ### C2 Vegeta
 - Manually run `C2 Vegeta Load Test`
 - Download the `c2-vegeta-loadtest` artifact for the CI proof report
-
-### Android APK
-- Manually run `Android APK Build`
-- Download the `android-release-apk` artifact
-- Or download the APK from the GitHub Release created by the workflow
-
-### Marketplace Generator
-- Manually run `Generate React Native CI/CD Workflow`
-- It uses `TanayK07/react-native-expo-cicd-action@v1.0.3`
-- The generated workflow is uploaded as an artifact so you can inspect or commit it later
-

@@ -2,15 +2,19 @@ package main
 
 import (
 	"crypto/tls"
+	"context"
 	"flag"
 	"log"
 	"net"
 	"path/filepath"
+	"time"
 
 	digitaldeltav1 "github.com/Seyamalam/hackfusion_huntrix/proto/gen/go/digitaldeltav1"
 	"github.com/Seyamalam/hackfusion_huntrix/services/core/internal/grpcserver"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -27,7 +31,9 @@ func main() {
 	}
 
 	service := grpcserver.New(*mapPath, *chaosURL)
-	serverOptions := []grpc.ServerOption{}
+	serverOptions := []grpc.ServerOption{
+		grpc.UnaryInterceptor(loggingUnaryInterceptor),
+	}
 	if *tlsCert != "" && *tlsKey != "" {
 		certificate, err := tls.LoadX509KeyPair(*tlsCert, *tlsKey)
 		if err != nil {
@@ -55,4 +61,30 @@ func main() {
 	if err := server.Serve(listener); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func loggingUnaryInterceptor(
+	ctx context.Context,
+	req any,
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (any, error) {
+	start := time.Now()
+	response, err := handler(ctx, req)
+
+	remote := "unknown"
+	if peerInfo, ok := peer.FromContext(ctx); ok && peerInfo.Addr != nil {
+		remote = peerInfo.Addr.String()
+	}
+
+	code := status.Code(err)
+	log.Printf(
+		"grpc method=%s code=%s duration=%s remote=%s",
+		info.FullMethod,
+		code.String(),
+		time.Since(start).Round(time.Millisecond),
+		remote,
+	)
+
+	return response, err
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -136,7 +137,7 @@ func NewServer(mapPath, chaosURL string) *Server {
 }
 
 func (s *Server) Handler() http.Handler {
-	return withCORS(s.httpMux)
+	return withAccessLog(withCORS(s.httpMux))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -654,4 +655,35 @@ func withCORS(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func withAccessLog(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		recorder := &statusRecorder{
+			ResponseWriter: w,
+			statusCode:     http.StatusOK,
+		}
+
+		next.ServeHTTP(recorder, r)
+
+		log.Printf(
+			"http %s %s status=%d duration=%s remote=%s",
+			r.Method,
+			r.URL.RequestURI(),
+			recorder.statusCode,
+			time.Since(start).Round(time.Millisecond),
+			r.RemoteAddr,
+		)
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (r *statusRecorder) WriteHeader(statusCode int) {
+	r.statusCode = statusCode
+	r.ResponseWriter.WriteHeader(statusCode)
 }

@@ -294,9 +294,49 @@ export type DashboardSummary = {
   weighted_graph_note?: string;
 };
 
+export type InventoryDemoState = {
+  current: {
+    id: string;
+    name: string;
+    quantity: number;
+    priority: string;
+    updated_at: string;
+    last_writer: string;
+    vector_clock: Record<string, number>;
+    conflicts: Array<{
+      field: string;
+      local_value: string;
+      remote_value: string;
+      local_replica: string;
+      remote_replica: string;
+    }>;
+  };
+  local_replica: {
+    id: string;
+    name: string;
+    quantity: number;
+    priority: string;
+    updated_at: string;
+    last_writer: string;
+    vector_clock: Record<string, number>;
+  };
+  remote_replica: {
+    id: string;
+    name: string;
+    quantity: number;
+    priority: string;
+    updated_at: string;
+    last_writer: string;
+    vector_clock: Record<string, number>;
+  };
+  scenario: string;
+  resolution_log: string[];
+};
+
 export type DashboardSnapshot = {
   graph: Graph;
   summary: DashboardSummary;
+  inventory: InventoryDemoState;
   missions: MissionPlansResponse;
   triage: TriageStatusResponse;
   predictive: PredictiveStatusResponse;

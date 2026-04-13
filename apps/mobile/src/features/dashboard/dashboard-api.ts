@@ -1,3 +1,5 @@
+import { getCurrentApiBaseUrl, getFallbackApiBaseUrl } from '@/src/features/dashboard/api-host';
+
 export type RoutePreview = {
   vehicle: string;
   source: string;
@@ -292,25 +294,6 @@ export type NetworkStatus = {
   nodes: NetworkNode[];
   edges: NetworkEdge[];
 };
-
-function resolveApiBaseUrl() {
-  if (process.env.EXPO_PUBLIC_API_BASE_URL) {
-    return process.env.EXPO_PUBLIC_API_BASE_URL;
-  }
-
-  if (
-    typeof globalThis !== 'undefined' &&
-    'location' in globalThis &&
-    globalThis.location &&
-    typeof globalThis.location.hostname === 'string'
-  ) {
-    return `http://${globalThis.location.hostname}:8080`;
-  }
-
-  return 'http://127.0.0.1:8080';
-}
-
-const apiBaseUrl = resolveApiBaseUrl();
 
 export const dashboardFallback: DashboardSummary = {
   scenario: 'Flash Flood Delta',
@@ -618,6 +601,7 @@ export const fleetFallback: FleetOrchestrationStatusResponse = {
 };
 
 export async function fetchDashboardSummary(signal?: AbortSignal): Promise<DashboardSummary> {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/dashboard/summary`, { signal });
   if (!response.ok) {
     throw new Error(`dashboard request failed: ${response.status}`);
@@ -627,6 +611,7 @@ export async function fetchDashboardSummary(signal?: AbortSignal): Promise<Dashb
 }
 
 export async function fetchNetworkStatus(signal?: AbortSignal): Promise<NetworkStatus> {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/network/status`, { signal });
   if (!response.ok) {
     throw new Error(`network request failed: ${response.status}`);
@@ -636,6 +621,7 @@ export async function fetchNetworkStatus(signal?: AbortSignal): Promise<NetworkS
 }
 
 export async function fetchMissionPlans(signal?: AbortSignal): Promise<MissionPlansResponse> {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/routes/missions`, { signal });
   if (!response.ok) {
     throw new Error(`mission request failed: ${response.status}`);
@@ -645,6 +631,7 @@ export async function fetchMissionPlans(signal?: AbortSignal): Promise<MissionPl
 }
 
 export async function fetchTriageStatus(signal?: AbortSignal): Promise<TriageStatusResponse> {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/triage/status`, { signal });
   if (!response.ok) {
     throw new Error(`triage request failed: ${response.status}`);
@@ -654,6 +641,7 @@ export async function fetchTriageStatus(signal?: AbortSignal): Promise<TriageSta
 }
 
 export async function fetchPredictiveStatus(signal?: AbortSignal): Promise<PredictiveStatusResponse> {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/predictive/status`, { signal });
   if (!response.ok) {
     throw new Error(`predictive request failed: ${response.status}`);
@@ -663,10 +651,15 @@ export async function fetchPredictiveStatus(signal?: AbortSignal): Promise<Predi
 }
 
 export async function fetchFleetOrchestrationStatus(signal?: AbortSignal): Promise<FleetOrchestrationStatusResponse> {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/fleet/orchestration/status`, { signal });
   if (!response.ok) {
     throw new Error(`fleet orchestration request failed: ${response.status}`);
   }
 
   return (await response.json()) as FleetOrchestrationStatusResponse;
+}
+
+export function getDefaultApiBaseUrlForDisplay() {
+  return getFallbackApiBaseUrl();
 }

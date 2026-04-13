@@ -133,7 +133,13 @@ seoMeta:
 
 <div class="grid grid-cols-[1.35fr_0.9fr] gap-8 h-full">
   <div class="flex flex-col justify-center">
-    <p class="uppercase tracking-[0.25em] text-sm text-sky-700 mb-4">HackFusion 2026</p>
+    <div class="flex items-center gap-4 !mb-6">
+      <img src="./logo.png" alt="Huntrix Delta logo" class="w-18 h-18 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg" />
+      <div>
+        <p class="uppercase tracking-[0.25em] text-sm text-sky-700 mb-2">HackFusion 2026</p>
+        <p class="text-base text-slate-500">Offline-first disaster logistics platform</p>
+      </div>
+    </div>
     <h1 class="text-6xl font-black leading-tight !mb-6">Huntrix Delta</h1>
     <p class="text-3xl leading-relaxed text-slate-700 !mb-8">
       Offline-first disaster logistics for flood response when internet, roads, and trust channels fail at the same time.

@@ -1,3 +1,5 @@
+import { getCurrentApiBaseUrl } from '@/src/features/dashboard/api-host';
+
 export type InventoryConflict = {
   field: string;
   local_value: string;
@@ -31,9 +33,8 @@ export type InventoryDemoResponse = {
   message: string;
 };
 
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? (typeof location !== 'undefined' ? `http://${location.hostname}:8080` : 'http://127.0.0.1:8080');
-
 export async function fetchInventoryDemoState(signal?: AbortSignal) {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/sync/inventory/state`, { signal });
   if (!response.ok) {
     throw new Error(`inventory demo request failed: ${response.status}`);
@@ -42,6 +43,7 @@ export async function fetchInventoryDemoState(signal?: AbortSignal) {
 }
 
 export async function runInventoryScenario(scenario: 'causal' | 'conflict') {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/sync/inventory/apply?scenario=${scenario}`, {
     method: 'POST',
   });
@@ -52,6 +54,7 @@ export async function runInventoryScenario(scenario: 'causal' | 'conflict') {
 }
 
 export async function resolveInventoryConflict(choice: 'local' | 'remote') {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/sync/inventory/resolve?choice=${choice}`, {
     method: 'POST',
   });
@@ -62,6 +65,7 @@ export async function resolveInventoryConflict(choice: 'local' | 'remote') {
 }
 
 export async function resetInventoryDemo() {
+  const apiBaseUrl = await getCurrentApiBaseUrl();
   const response = await fetch(`${apiBaseUrl}/api/sync/inventory/reset`, {
     method: 'POST',
   });

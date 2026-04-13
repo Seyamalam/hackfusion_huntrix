@@ -60,11 +60,15 @@ function App() {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(() => readCachedSnapshot());
   const [error, setError] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function refresh() {
+      if (!cancelled) {
+        setIsRefreshing(true);
+      }
       try {
         const next = await fetchDashboardSnapshot();
         if (cancelled) {
@@ -79,6 +83,10 @@ function App() {
         }
         setError(fetchError instanceof Error ? fetchError.message : "Live refresh failed");
         setIsLive(false);
+      } finally {
+        if (!cancelled) {
+          setIsRefreshing(false);
+        }
       }
     }
 
@@ -112,6 +120,7 @@ function App() {
   const vehiclePositions = deriveVehiclePositions(snapshot.graph, snapshot.summary.route_previews);
   const blockedEdges = snapshot.graph.edges.filter((edge) => edge.is_flooded);
   const openEdges = snapshot.graph.edges.filter((edge) => !edge.is_flooded);
+  const inventory = snapshot.inventory;
   const primaryMission = snapshot.missions.missions[0];
   const predictive = snapshot.predictive;
   const predictiveByEdge = new Map(
@@ -123,20 +132,52 @@ function App() {
     fleet.status.live_reachability.drone_required_zones.length > 0
       ? fleet.status.live_reachability.drone_required_zones
       : fleet.status.drill_reachability.drone_required_zones;
+  const stateCards = [
+    {
+      label: "Offline",
+      tone: isLive ? "good" : "warn",
+      value: isLive ? "Graceful fallback ready" : "Running from cached snapshot",
+    },
+    {
+      label: "Syncing",
+      tone: isRefreshing ? "info" : error ? "warn" : "good",
+      value: isRefreshing ? "Refreshing command feed" : error ? "Feed interrupted" : "Route feed in sync",
+    },
+    {
+      label: "Conflict",
+      tone: inventory.current.conflicts.length > 0 ? "danger" : "good",
+      value: inventory.current.conflicts.length > 0 ? "Inventory conflict detected" : "No active inventory conflict",
+    },
+    {
+      label: "Verified",
+      tone: fleet.status.handoff.pod_receipt_id ? "good" : "warn",
+      value: fleet.status.handoff.pod_receipt_id ? "Signed handoff proof present" : "Awaiting signed receipt",
+    },
+  ] as const;
+  const inventoryCells = buildInventoryCells(inventory);
+  const nodeStatus = buildNodeStatus(snapshot.graph, blockedEdges, flaggedZones);
 
   return (
     <main className="shell">
-      <section className="hero">
+      <a className="skip-link" href="#command-panels">Skip to command panels</a>
+      <section className="hero" aria-labelledby="hero-title">
         <div>
+          <div className="brand-mark">
+            <img src="/logo.png" alt="Huntrix Delta logo" />
+            <div>
+              <p className="eyebrow">Huntrix Delta</p>
+              <p className="brand-subtitle">Flood logistics command deck</p>
+            </div>
+          </div>
           <p className="eyebrow">M4.4 Route Deck</p>
-          <h1>Live flood logistics on one map.</h1>
+          <h1 id="hero-title">Live flood logistics on one map.</h1>
           <p className="hero-copy">
             Road, waterway, and airway corridors update against the live graph feed. Routes,
             vehicle markers, and failed edges refresh automatically for the judge demo.
           </p>
         </div>
         <div className="hero-meta">
-          <StatusBadge label={isLive ? "Live Feed" : "Cached Snapshot"} tone={isLive ? "good" : "warn"} />
+          <StatusBadge label={isRefreshing ? "Syncing Feed" : isLive ? "Live Feed" : "Cached Snapshot"} tone={isRefreshing ? "info" : isLive ? "good" : "warn"} />
           <div className="meta-stack">
             <span>{snapshot.graph.metadata.scenario}</span>
             <span>{snapshot.graph.metadata.region}</span>
@@ -145,8 +186,17 @@ function App() {
         </div>
       </section>
 
-      <section className="dashboard-grid">
-        <article className="panel map-panel">
+      <section className="command-ribbon" aria-live="polite">
+        {stateCards.map((card) => (
+          <article className="state-card" data-tone={card.tone} key={card.label}>
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+          </article>
+        ))}
+      </section>
+
+      <section className="dashboard-grid" id="command-panels">
+        <article className="panel map-panel" aria-label="Operational route map">
           <div className="panel-header">
             <div>
               <p className="panel-kicker">Operational Map</p>
@@ -302,6 +352,10 @@ function App() {
             OSM tiles are cached by the service worker after first load, so the map can survive
             brief disconnects during the demo.
           </p>
+          <div className="sr-summary" aria-live="polite">
+            {blockedEdges.length} blocked corridors, {flaggedZones.length} drone-required zones,{" "}
+            {snapshot.summary.route_previews.length} active routes.
+          </div>
         </article>
 
         <aside className="side-column">
@@ -324,6 +378,47 @@ function App() {
               <MetricCard label="Drone Zones" value={flaggedZones.length} tone="danger" />
             </div>
             {error ? <p className="warning-banner">Live refresh error: {error}</p> : null}
+          </article>
+
+          <article className="panel routes-panel" aria-label="Supply inventory heatmap">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Inventory Heat</p>
+                <h2>Conflict and stock pressure at a glance</h2>
+              </div>
+            </div>
+            <div className="heatmap-grid" role="list" aria-label="Inventory heatmap">
+              {inventoryCells.map((cell) => (
+                <div className="heatmap-cell" data-level={cell.level} key={cell.label} role="listitem" tabIndex={0}>
+                  <span>{cell.label}</span>
+                  <strong>{cell.value}</strong>
+                  <p>{cell.detail}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="panel routes-panel" aria-label="Node status panel">
+            <div className="panel-header compact">
+              <div>
+                <p className="panel-kicker">Node Status</p>
+                <h2>Operational readiness by destination</h2>
+              </div>
+            </div>
+            <div className="route-list">
+              {nodeStatus.map((node) => (
+                <div className="route-card" key={node.id} tabIndex={0}>
+                  <div className="route-topline">
+                    <span className="vehicle-pill" data-vehicle={node.tone}>
+                      {node.status}
+                    </span>
+                    <span>{node.linkCount} links</span>
+                  </div>
+                  <strong>{node.name}</strong>
+                  <p>{node.detail}</p>
+                </div>
+              ))}
+            </div>
           </article>
 
           <article className="panel routes-panel">
@@ -712,12 +807,77 @@ function LegendSwatch({ label, color }: { label: string; color: string }) {
   );
 }
 
-function StatusBadge({ label, tone }: { label: string; tone: "good" | "warn" }) {
+function StatusBadge({ label, tone }: { label: string; tone: "good" | "info" | "warn" }) {
   return (
     <span className="status-badge" data-tone={tone}>
       {label}
     </span>
   );
+}
+
+function buildInventoryCells(snapshot: DashboardSnapshot["inventory"]) {
+  return [
+    {
+      label: "Merged stock",
+      value: `${snapshot.current.quantity}`,
+      detail: `${snapshot.current.name} • ${snapshot.current.priority}`,
+      level: heatLevel(snapshot.current.quantity),
+    },
+    {
+      label: "Replica A",
+      value: `${snapshot.local_replica.quantity}`,
+      detail: `Writer ${snapshot.local_replica.last_writer} • ${snapshot.local_replica.priority}`,
+      level: heatLevel(snapshot.local_replica.quantity),
+    },
+    {
+      label: "Replica B",
+      value: `${snapshot.remote_replica.quantity}`,
+      detail: `Writer ${snapshot.remote_replica.last_writer} • ${snapshot.remote_replica.priority}`,
+      level: heatLevel(snapshot.remote_replica.quantity),
+    },
+    {
+      label: "Conflict load",
+      value: `${snapshot.current.conflicts.length}`,
+      detail: snapshot.current.conflicts.length > 0 ? "Manual resolution needed" : "Converged cleanly",
+      level: snapshot.current.conflicts.length > 0 ? "critical" : "cool",
+    },
+  ];
+}
+
+function buildNodeStatus(
+  graph: Graph,
+  blockedEdges: Edge[],
+  flaggedZones: DashboardSnapshot["fleet"]["status"]["live_reachability"]["drone_required_zones"],
+) {
+  return graph.nodes.map((node) => {
+    const links = graph.edges.filter((edge) => edge.source === node.id || edge.target === node.id);
+    const blocked = blockedEdges.filter((edge) => edge.source === node.id || edge.target === node.id).length;
+    const droneRequired = flaggedZones.some((zone) => zone.node_id === node.id);
+    const status = droneRequired ? "Drone required" : blocked > 0 ? "Degraded" : "Operational";
+    const tone = droneRequired ? "drone" : blocked > 0 ? "truck" : "speedboat";
+    return {
+      detail: droneRequired
+        ? "Surface access is cut; use rendezvous + drone handoff."
+        : blocked > 0
+          ? `${blocked} connected corridor(s) are blocked.`
+          : "All connected corridors are currently available.",
+      id: node.id,
+      linkCount: links.length,
+      name: node.name,
+      status,
+      tone,
+    };
+  });
+}
+
+function heatLevel(quantity: number) {
+  if (quantity >= 170) {
+    return "critical";
+  }
+  if (quantity >= 120) {
+    return "warm";
+  }
+  return "cool";
 }
 
 function formatTimestamp(value: string) {

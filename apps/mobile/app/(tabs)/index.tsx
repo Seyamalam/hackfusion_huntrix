@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
 import { AnimatedPanel } from '@/src/components/ui/animated-panel';
+import { ActionChip } from '@/src/components/ui/action-chip';
 import { HeroBanner } from '@/src/components/ui/hero-banner';
 import { InfoRow } from '@/src/components/ui/info-row';
 import { MetricCard } from '@/src/components/ui/metric-card';
 import { SectionCard } from '@/src/components/ui/section-card';
 import { StatusPill } from '@/src/components/ui/status-pill';
+import { SyncStateStrip } from '@/src/components/ui/sync-state-strip';
 import {
   dashboardFallback,
   fetchDashboardSummary,
@@ -32,6 +34,7 @@ import { MissionSummaryCard } from '@/src/features/dashboard/mission-summary-car
 import { TriagePanel } from '@/src/features/dashboard/triage-panel';
 import { FleetOrchestrationPanel } from '@/src/features/fleet/fleet-orchestration-panel';
 import { PredictivePanel } from '@/src/features/predictive/predictive-panel';
+import { useBackendReconnect } from '@/src/hooks/use-backend-reconnect';
 import { palette } from '@/src/theme/palette';
 
 export default function CommandScreen() {
@@ -43,35 +46,34 @@ export default function CommandScreen() {
   const [triage, setTriage] = useState<TriageStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    Promise.all([
-      fetchDashboardSummary(controller.signal),
-      fetchFleetOrchestrationStatus(controller.signal),
-      fetchNetworkStatus(controller.signal),
-      fetchMissionPlans(controller.signal),
-      fetchPredictiveStatus(controller.signal),
-      fetchTriageStatus(controller.signal),
-    ])
-      .then(([nextSummary, nextFleet, nextNetwork, nextMissions, nextPredictive, nextTriage]) => {
-        setSummary(nextSummary);
-        setFleet(nextFleet);
-        setNetwork(nextNetwork);
-        setMissions(nextMissions);
-        setPredictive(nextPredictive);
-        setTriage(nextTriage);
-        setError(null);
-      })
-      .catch((fetchError: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
+  const reconnect = useBackendReconnect(
+    async (signal) => {
+      const [nextSummary, nextFleet, nextNetwork, nextMissions, nextPredictive, nextTriage] =
+        await Promise.all([
+          fetchDashboardSummary(signal),
+          fetchFleetOrchestrationStatus(signal),
+          fetchNetworkStatus(signal),
+          fetchMissionPlans(signal),
+          fetchPredictiveStatus(signal),
+          fetchTriageStatus(signal),
+        ]);
+      setSummary(nextSummary);
+      setFleet(nextFleet);
+      setNetwork(nextNetwork);
+      setMissions(nextMissions);
+      setPredictive(nextPredictive);
+      setTriage(nextTriage);
+      setError(null);
+    },
+    {
+      onError: (fetchError) => {
         setError(fetchError instanceof Error ? fetchError.message : 'Failed to load dashboard');
-      });
-
-    return () => controller.abort();
-  }, []);
+      },
+      onSuccess: () => {
+        setError(null);
+      },
+    },
+  );
 
   const liveSummary = summary ?? dashboardFallback;
   const liveFleet = fleet ?? fleetFallback;
@@ -131,10 +133,28 @@ export default function CommandScreen() {
             label={`${liveSummary.last_recompute_ms ?? liveMissions.recompute_ms}ms recompute`}
             tone="neutral"
           />
+          <ActionChip
+            label={reconnect.isRefreshing ? 'Reconnecting…' : 'Reconnect'}
+            onPress={reconnect.reconnect}
+            tone="default"
+            accessibilityHint="Retry all backend dashboard requests now."
+          />
         </HeroBanner>
       </AnimatedPanel>
 
       <AnimatedPanel index={1}>
+        <SyncStateStrip
+          eyebrow="Mission State"
+          items={[
+            { label: 'Offline', value: reconnect.backendState === 'fallback' ? 'Fallback active' : 'Scenario cached locally', tone: reconnect.backendState === 'fallback' ? 'warning' : 'success' },
+            { label: 'Syncing', value: reconnect.isRefreshing ? 'Auto reconnecting' : error ? 'Feed interrupted' : 'Live command feed', tone: reconnect.isRefreshing ? 'info' : error ? 'alert' : 'info' },
+            { label: 'Conflict', value: liveTriage.snapshot.predictions.some((prediction) => prediction.will_breach) ? 'SLA pressure' : 'Stable', tone: liveTriage.snapshot.predictions.some((prediction) => prediction.will_breach) ? 'warning' : 'neutral' },
+            { label: 'Verified', value: reconnect.lastSuccessAt ? `Last sync ${new Date(reconnect.lastSuccessAt).toLocaleTimeString()}` : 'Awaiting backend', tone: reconnect.lastSuccessAt ? 'success' : 'warning' },
+          ]}
+        />
+      </AnimatedPanel>
+
+      <AnimatedPanel index={2}>
         <View style={{ gap: 12 }}>
           <Text
             selectable
@@ -159,7 +179,7 @@ export default function CommandScreen() {
         </View>
       </AnimatedPanel>
 
-      <AnimatedPanel index={2}>
+      <AnimatedPanel index={3}>
         <SectionCard
           eyebrow="Scenario Brief"
           title={liveSummary.scenario}
@@ -174,23 +194,23 @@ export default function CommandScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={3}>
+      <AnimatedPanel index={4}>
         <MissionSummaryCard mission={primaryMission} />
       </AnimatedPanel>
 
-      <AnimatedPanel index={4}>
+      <AnimatedPanel index={5}>
         <FleetOrchestrationPanel fleet={liveFleet} />
       </AnimatedPanel>
 
-      <AnimatedPanel index={5}>
+      <AnimatedPanel index={6}>
         <PredictivePanel predictive={livePredictive} />
       </AnimatedPanel>
 
-      <AnimatedPanel index={6}>
+      <AnimatedPanel index={7}>
         <TriagePanel triage={liveTriage} />
       </AnimatedPanel>
 
-      <AnimatedPanel index={7}>
+      <AnimatedPanel index={8}>
         <SectionCard
           eyebrow="Priority Pressure"
           title="Narrate the decision, not the math"
