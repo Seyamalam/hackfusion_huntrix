@@ -9,11 +9,11 @@ Team Name : Huntrix
 **A1–A5 Combined (UI/UX)**
 
 1. How does your UI communicate system state (offline, syncing, conflict, verified) to users clearly during disaster scenarios?
-Answer: We use text-first status pills and section cards, not color alone. Examples include `Replica Converged` / `Conflict Active`, `Audit Intact` / `Tampered`, `POD_OK` / explicit error codes, and the `Judge Proof` sync card showing handshake, exchange, and pending-sync state.
+Answer: We use text-first status pills and shared state strips, not color alone. Every critical mobile screen now shows `Offline`, `Syncing`, `Conflict`, and `Verified`, and the dashboard has a matching command ribbon plus explicit live/cached status.
 2. Explain how your design ensures usability across mobile, tablet, and desktop without layout failure. What trade-offs did you make?
-Answer: We split the surfaces by job: Expo handles field workflows, and the dashboard handles dense map operations. The mobile app uses stacked scrollable cards with wrapped controls, and the dashboard collapses from a two-column grid to one column on smaller screens. The trade-off was keeping the map-heavy control surface out of the phone UI so the mobile flow stays readable.
+Answer: We split the surfaces by job: Expo handles field workflows, and the dashboard handles dense map operations. The mobile app uses stacked scrollable cards and keyboard-safe forms, and the dashboard collapses from two columns to one on smaller screens. The trade-off was keeping the map-heavy control surface out of the phone UI so the mobile flow stays readable.
 3. How did you ensure accessibility (WCAG compliance)? Mention at least 2 concrete implementations.
-Answer: We did not do a full formal WCAG audit, so we do not overclaim full compliance. Concrete steps we did take are: state is always written as text labels instead of color only, and we use explicit labels for inputs such as `Delivery ID` and `Payload Summary`. We also kept large tap targets and readable heading-based panel structure.
+Answer: We did not do a full formal WCAG audit, so we do not overclaim full compliance. Concrete steps we did take are: state is always written as text labels instead of color only, and critical controls use explicit accessibility labels and button roles. We also kept large tap targets, keyboard-focus states on the dashboard, and a keyboard-safe settings screen on mobile.
 
 ---
 
@@ -101,4 +101,4 @@ Answer: We run reachability checks for truck and boat first. If both surface mod
 2. Explain how you compute the optimal rendezvous point between vehicles and drones.
 Answer: We test candidate meeting nodes, compute boat travel time plus drone flight legs, enforce drone range and payload limits, and choose the node with the lowest combined mission time.
 3. How is the handoff process (including ownership and verification) handled securely?
-Answer: The current handoff is simulated but tied to the same PoD model. The boat generates a PoD event, the drone countersigns, ownership changes are written into a hash-linked ledger history, and that history can later sync with the rest of the system.
+Answer: The mobile app now runs a live PoD-backed handoff flow. The boat generates the signed challenge, the drone countersigns, the sender finalizes the receipt, and ownership is written into a syncable handoff ledger with vector-clock metadata and receipt-hash linkage.
