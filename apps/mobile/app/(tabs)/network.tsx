@@ -128,6 +128,8 @@ export default function NetworkScreen() {
         >
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             <ActionChip label="Init Wi-Fi Direct" onPress={wifiDirect.initializeTransport} tone="primary" />
+            <ActionChip label="Create Group" onPress={wifiDirect.createGroup} />
+            <ActionChip label="Remove Group" onPress={wifiDirect.removeGroup} tone="danger" />
             <ActionChip label="Discover Peers" onPress={wifiDirect.discoverPeers} />
             <ActionChip label="Stop Discovery" onPress={wifiDirect.stopDiscovery} />
           </View>
@@ -145,6 +147,8 @@ export default function NetworkScreen() {
               }
             />
             <InfoRow label="Peers found" value={String(wifiDirect.peers.length)} />
+            <InfoRow label="Group name" value={wifiDirect.groupInfo?.networkName ?? 'none'} />
+            <InfoRow label="Group owner" value={wifiDirect.groupInfo?.ownerDeviceAddress ?? 'none'} />
           </View>
           <Text selectable style={{ color: palette.textSecondary, lineHeight: 22 }}>
             {wifiDirect.error ?? wifiDirect.transportNote}

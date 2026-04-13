@@ -108,7 +108,7 @@ eas build -p android --profile development
 ## M2.4 Actual Device-to-Device Delta Sync
 
 ### Current Implementation Scope
-- Android-first `Wi‑Fi Direct` transport candidate
+- Android-first `Wi‑Fi Direct` transport path using `react-native-wifi-p2p`
 - BLE remains discovery/readiness only
 - actual sync payloads now include protobuf RPC frames aligned with `SyncService`
   - mesh handshake frame for peer clock exchange
@@ -122,17 +122,20 @@ eas build -p android --profile development
 1. Install the dev build on both Android phones.
 2. Open `Network` on both devices.
 3. Press `Init Wi‑Fi Direct` on both.
-4. Press `Discover Peers` on both.
-5. On one device, connect to the discovered peer.
-6. On each device, mutate local inventory differently:
+4. On one device, press `Create Group`.
+5. On the other device, press `Discover Peers`.
+6. Connect to the discovered peer.
+7. On each device, mutate local inventory differently:
    - `+10 Qty` or `-10 Qty`
    - `Set P0` or `Set P3`
-7. Press `Send Handshake`.
-8. Press `Send Delta Bundle`.
-9. Press `Pull Pending`.
-9. Observe:
+8. Press `Send Handshake`.
+9. Press `Send Delta Bundle`.
+10. Press `Pull Pending`.
+11. Observe:
    - `Session Log`
    - `Last handshake`
+   - `Group name`
+   - `Group owner`
    - `Known peer clock`
    - `Accepted ops`
    - `Rejected ops`
@@ -142,6 +145,7 @@ eas build -p android --profile development
 
 ### Pass Criteria
 - two real devices discover each other
+- group creation succeeds
 - connection succeeds
 - handshake is exchanged
 - `ExchangeBundleRequest` is sent
@@ -191,7 +195,7 @@ For the final hackathon demo, plan around `2` physical Android devices.
 
 ## Honest Transport Note
 
-The Wi‑Fi Direct peer channel now carries protobuf RPC frames aligned with the `SyncService` request and response messages.
+The Wi‑Fi Direct peer channel now carries protobuf RPC frames aligned with the `SyncService` request and response messages, using `react-native-wifi-p2p` for peer discovery, group creation, and message exchange.
 
 It is still not a full on-device HTTP/2 gRPC server/client stack.
 

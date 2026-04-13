@@ -2,7 +2,7 @@ import { create } from '@bufbuild/protobuf';
 import { useEffect, useRef, useState } from 'react';
 import { NativeModules, PermissionsAndroid } from 'react-native';
 import type { EmitterSubscription } from 'react-native';
-import type { Device, WifiP2pInfo } from 'rn-wifi-p2p';
+import type { Device, WifiP2pInfo } from 'react-native-wifi-p2p';
 import {
   ExchangeBundleResponseSchema,
   PullPendingResponseSchema,
@@ -55,6 +55,11 @@ type WifiDirectState = {
   backgroundPollingIntervalSeconds: number;
   connectionInfo: WifiP2pInfo | null;
   error: string | null;
+  groupInfo: {
+    networkName: string;
+    ownerDeviceAddress: string;
+    passphrase: string;
+  } | null;
   evidence: {
     exchangeRequestSeen: boolean;
     exchangeResponseSeen: boolean;
@@ -95,6 +100,7 @@ const INITIAL_STATE: WifiDirectState = {
   backgroundPollingIntervalSeconds: 5,
   connectionInfo: null,
   error: null,
+  groupInfo: null,
   evidence: {
     exchangeRequestSeen: false,
     exchangeResponseSeen: false,
@@ -121,7 +127,7 @@ const INITIAL_STATE: WifiDirectState = {
   replicaId: 'android-peer',
   sessionSummary: null,
   transportNote:
-    'Wi-Fi Direct currently carries protobuf SyncService RPC frames over native sockets; full HTTP/2 gRPC on-device still needs deeper native support.',
+    'Wi-Fi Direct currently carries protobuf SyncService RPC frames over native sockets using react-native-wifi-p2p; full HTTP/2 gRPC on-device still needs deeper native support.',
 };
 
 export function useWifiDirect(options: UseWifiDirectOptions = {}) {
@@ -194,8 +200,11 @@ export function useWifiDirect(options: UseWifiDirectOptions = {}) {
       subscriptionsRef.current = [];
       stopReceivingRef.current?.();
       if (hasNativeWifiDirectModule()) {
-        void import('rn-wifi-p2p')
-          .then((wifiDirect) => wifiDirect.stop())
+        void import('react-native-wifi-p2p')
+          .then((wifiDirect) => {
+            wifiDirect.stopReceivingMessage();
+            return wifiDirect.removeGroup().catch(() => undefined);
+          })
           .catch(() => undefined);
       }
     };
@@ -257,13 +266,7 @@ export function useWifiDirect(options: UseWifiDirectOptions = {}) {
         }),
       );
       stopReceivingRef.current?.();
-      stopReceivingRef.current = await wifiDirect.startReceivingMessage(
-        { meta: true },
-        (message) => {
-          void handleIncomingPayload(message.fromAddress, message.message);
-        },
-        {},
-      );
+      stopReceivingRef.current = startReceivingLoop(wifiDirect);
 
       setState((current) => ({
         ...current,
@@ -310,7 +313,10 @@ export function useWifiDirect(options: UseWifiDirectOptions = {}) {
   async function connectToPeer(deviceAddress: string) {
     try {
       const wifiDirect = await getWifiDirectModule(moduleRef);
-      await wifiDirect.connect(deviceAddress);
+      await wifiDirect.connectWithConfig({
+        deviceAddress,
+        groupOwnerIntent: 0,
+      });
       const connectionInfo = await wifiDirect.getConnectionInfo().catch(() => null);
       setState((current) => ({
         ...current,
@@ -322,6 +328,55 @@ export function useWifiDirect(options: UseWifiDirectOptions = {}) {
       setState((current) => ({
         ...current,
         error: error instanceof Error ? error.message : 'Failed to connect to Wi-Fi Direct peer.',
+      }));
+    }
+  }
+
+  async function createGroup() {
+    try {
+      const wifiDirect = await getWifiDirectModule(moduleRef);
+      await wifiDirect.createGroup();
+      const [connectionInfo, groupInfo] = await Promise.all([
+        wifiDirect.getConnectionInfo().catch(() => null),
+        wifiDirect.getGroupInfo().catch(() => null),
+      ]);
+      setState((current) => ({
+        ...current,
+        connectionInfo,
+        error: null,
+        groupInfo: groupInfo
+          ? {
+              networkName: groupInfo.networkName,
+              ownerDeviceAddress: groupInfo.owner?.deviceAddress ?? 'unknown',
+              passphrase: groupInfo.passphrase,
+            }
+          : null,
+        messages: ['local: Wi-Fi Direct group created', ...current.messages].slice(0, 8),
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: formatWifiDirectError(error, 'Failed to create Wi-Fi Direct group.'),
+      }));
+    }
+  }
+
+  async function removeGroup() {
+    try {
+      const wifiDirect = await getWifiDirectModule(moduleRef);
+      await wifiDirect.removeGroup();
+      const connectionInfo = await wifiDirect.getConnectionInfo().catch(() => null);
+      setState((current) => ({
+        ...current,
+        connectionInfo,
+        error: null,
+        groupInfo: null,
+        messages: ['local: Wi-Fi Direct group removed', ...current.messages].slice(0, 8),
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: formatWifiDirectError(error, 'Failed to remove Wi-Fi Direct group.'),
       }));
     }
   }
@@ -483,11 +538,13 @@ export function useWifiDirect(options: UseWifiDirectOptions = {}) {
   return {
     ...state,
     connectToPeer,
+    createGroup,
     discoverPeers,
     initializeTransport,
     setPriority,
     incrementQuantity,
     decrementQuantity,
+    removeGroup,
     sendDeltaBundle,
     sendHandshake,
     sendPullPending,
@@ -759,9 +816,48 @@ export function useWifiDirect(options: UseWifiDirectOptions = {}) {
     } catch (error) {
       setState((current) => ({
         ...current,
-        error: error instanceof Error ? error.message : 'Failed to send sync RPC response.',
+        error: formatWifiDirectError(error, 'Failed to send sync RPC response.'),
       }));
     }
+  }
+
+  function startReceivingLoop(wifiDirect: WifiDirectModule) {
+    let active = true;
+
+    const listen = async () => {
+      while (active) {
+        try {
+          const incoming = await wifiDirect.receiveMessage({ meta: true });
+          if (!active) {
+            return;
+          }
+
+          if (incoming && typeof incoming === 'object' && 'fromAddress' in incoming && 'message' in incoming) {
+            await handleIncomingPayload(
+              String((incoming as { fromAddress: unknown }).fromAddress),
+              (incoming as { message: unknown }).message,
+            );
+          }
+        } catch (error) {
+          if (!active) {
+            return;
+          }
+
+          setState((current) => ({
+            ...current,
+            error: formatWifiDirectError(error, 'Failed while listening for Wi-Fi Direct messages.'),
+          }));
+          return;
+        }
+      }
+    };
+
+    void listen();
+
+    return () => {
+      active = false;
+      wifiDirect.stopReceivingMessage();
+    };
   }
 }
 
@@ -777,7 +873,7 @@ async function requestWifiDirectPermissions() {
 }
 
 function hasNativeWifiDirectModule() {
-  return Boolean((NativeModules as Record<string, unknown>).RnWifiP2P);
+  return Boolean((NativeModules as Record<string, unknown>).WiFiP2PManagerModule);
 }
 
 function persistLocalInventory(item: InventoryItem) {
@@ -786,18 +882,22 @@ function persistLocalInventory(item: InventoryItem) {
 }
 
 type WifiDirectModule = {
+  connectWithConfig: (config: { deviceAddress: string; groupOwnerIntent?: number }) => Promise<void>;
   connect: (deviceAddress: string) => Promise<void>;
+  createGroup: () => Promise<void>;
   getAvailablePeers: () => Promise<{ devices: Device[] }>;
   getConnectionInfo: () => Promise<WifiP2pInfo>;
+  getGroupInfo: () => Promise<{
+    networkName: string;
+    owner: { deviceAddress: string };
+    passphrase: string;
+  }>;
   initialize: () => Promise<boolean>;
+  receiveMessage: (props: { meta: boolean }) => Promise<unknown>;
   sendMessageTo: (message: string, address: string) => Promise<unknown>;
-  startDiscoveringPeers: () => Promise<void>;
-  startReceivingMessage: (
-    props?: { meta?: boolean },
-    callback?: (message: { fromAddress: string; message: unknown }) => void,
-    options?: { parse?: (message: string) => unknown; useJson?: boolean },
-  ) => Promise<() => void>;
-  stop: () => Promise<boolean>;
+  removeGroup: () => Promise<void>;
+  startDiscoveringPeers: () => Promise<string>;
+  stopReceivingMessage: () => void;
   stopDiscoveringPeers: () => Promise<void>;
   subscribeOnConnectionInfoUpdates: (callback: (data: WifiP2pInfo) => void) => EmitterSubscription;
   subscribeOnPeersUpdates: (callback: (data: { devices: Device[] }) => void) => EmitterSubscription;
@@ -810,19 +910,35 @@ async function getWifiDirectModule(
     return ref.current;
   }
 
-  const module = await import('rn-wifi-p2p');
+  const module = await import('react-native-wifi-p2p');
   ref.current = {
+    connectWithConfig: module.connectWithConfig,
     connect: module.connect,
+    createGroup: module.createGroup,
     getAvailablePeers: module.getAvailablePeers,
     getConnectionInfo: module.getConnectionInfo,
+    getGroupInfo: module.getGroupInfo,
     initialize: module.initialize,
+    receiveMessage: module.receiveMessage,
     sendMessageTo: module.sendMessageTo,
+    removeGroup: module.removeGroup,
     startDiscoveringPeers: module.startDiscoveringPeers,
-    startReceivingMessage: module.startReceivingMessage,
-    stop: module.stop,
+    stopReceivingMessage: module.stopReceivingMessage,
     stopDiscoveringPeers: module.stopDiscoveringPeers,
     subscribeOnConnectionInfoUpdates: module.subscribeOnConnectionInfoUpdates,
     subscribeOnPeersUpdates: module.subscribeOnPeersUpdates,
   };
   return ref.current;
+}
+
+function formatWifiDirectError(error: unknown, fallback: string) {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const code = 'code' in error ? String((error as { code: unknown }).code) : null;
+    const message = String((error as { message: unknown }).message);
+    return code ? `${fallback} [${code}] ${message}` : `${fallback} ${message}`;
+  }
+  if (error instanceof Error) {
+    return `${fallback} ${error.message}`;
+  }
+  return fallback;
 }

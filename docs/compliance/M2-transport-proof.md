@@ -13,6 +13,7 @@ This document is intentionally precise:
 
 Two Android phones can:
 - discover each other over Wi-Fi Direct
+- create a peer group with one device acting as group owner
 - form a peer group with no internet
 - exchange protobuf packets over the native peer socket path
 - carry `SyncService` request/response message shapes
@@ -47,12 +48,13 @@ Relevant files:
 
 1. On both phones, open `Network`.
 2. Tap `Init Wi-Fi Direct`.
-3. Tap `Discover Peers`.
-4. Connect one phone to the discovered peer.
-5. Mutate local inventory differently on each phone.
-6. Tap `Send Handshake`.
-7. Tap `Send Delta Bundle`.
-8. Tap `Pull Pending`.
+3. On one phone, tap `Create Group`.
+4. On the other phone, tap `Discover Peers`.
+5. Connect to the discovered peer.
+6. Mutate local inventory differently on each phone.
+7. Tap `Send Handshake`.
+8. Tap `Send Delta Bundle`.
+9. Tap `Pull Pending`.
 
 ## Judge-Facing Evidence On Screen
 
@@ -68,6 +70,7 @@ It should show:
 
 Also point at:
 - transport channel: `Wi-Fi Direct native socket messaging`
+- group details: `Group name` and `Group owner`
 - payload contract: `Protobuf SyncService request/response frames`
 - last RPC method
 - last RPC direction

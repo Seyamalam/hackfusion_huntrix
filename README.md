@@ -10,7 +10,7 @@ Per the HackFusion rules, this project uses open-source frameworks, libraries, a
 - Expo / React Native / Expo Router
 - React + Vite + Leaflet / React Leaflet
 - Go standard library plus gRPC / Protobuf tooling
-- `rn-wifi-p2p`
+- `react-native-wifi-p2p`
 - `react-native-ble-plx`
 - `@noble/curves`, `@noble/hashes`
 - `@stablelib/aes`, `@stablelib/gcm`
@@ -204,7 +204,7 @@ powershell -ExecutionPolicy Bypass -File scripts/install-protoc.ps1
 powershell -ExecutionPolicy Bypass -File scripts/generate-proto.ps1
 ```
 
-Direct mobile sync packets now use protobuf `SyncService` RPC frames over the Wi-Fi Direct native socket transport. JSON is retained only for local storage and the developer-facing dashboard APIs.
+Direct mobile sync packets now use protobuf `SyncService` RPC frames over the Wi-Fi Direct native socket transport provided by `react-native-wifi-p2p`. JSON is retained only for local storage and the developer-facing dashboard APIs.
 
 ## GitHub Actions
 
