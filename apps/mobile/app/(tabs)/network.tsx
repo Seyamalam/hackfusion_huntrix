@@ -152,7 +152,40 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={4}>
+      {wifiDirect.error ? (
+        <AnimatedPanel index={4}>
+          <SectionCard
+            eyebrow="Raw Error"
+            title="Exact Wi-Fi Direct failure"
+            description="Copy this exact message and share it back."
+          >
+            <View
+              style={{
+                gap: 10,
+                borderRadius: 18,
+                borderCurve: 'continuous',
+                borderWidth: 1,
+                borderColor: '#d7a499',
+                backgroundColor: '#f8e5e0',
+                padding: 14,
+              }}
+            >
+              <Text
+                selectable
+                style={{
+                  color: '#7a2416',
+                  fontFamily: 'monospace',
+                  lineHeight: 22,
+                }}
+              >
+                {wifiDirect.error}
+              </Text>
+            </View>
+          </SectionCard>
+        </AnimatedPanel>
+      ) : null}
+
+      <AnimatedPanel index={5}>
         <SectionCard
           eyebrow="Judge Proof"
           title="Peer transport evidence"
@@ -191,7 +224,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={5}>
+      <AnimatedPanel index={6}>
         <SectionCard
           eyebrow="Wi-Fi Direct"
           title="Peer transport candidates"
@@ -234,7 +267,7 @@ export default function NetworkScreen() {
         </SectionCard>
       </AnimatedPanel>
 
-      <AnimatedPanel index={6}>
+      <AnimatedPanel index={7}>
         <SectionCard
           eyebrow="Local Replica"
           title="Current sync payload state"
@@ -284,7 +317,7 @@ export default function NetworkScreen() {
       </AnimatedPanel>
 
       {wifiDirect.sessionSummary ? (
-        <AnimatedPanel index={7}>
+        <AnimatedPanel index={8}>
           <SectionCard
             eyebrow="Session Summary"
             title="Latest delta application result"
@@ -318,7 +351,7 @@ export default function NetworkScreen() {
       ) : null}
 
       {wifiDirect.messages.length > 0 ? (
-        <AnimatedPanel index={8}>
+        <AnimatedPanel index={9}>
           <SectionCard
             eyebrow="Session Log"
             title="Wi-Fi Direct message activity"
@@ -352,11 +385,11 @@ export default function NetworkScreen() {
         </AnimatedPanel>
       ) : null}
 
-      <AnimatedPanel index={9}>
+      <AnimatedPanel index={10}>
         <MeshThrottlePanel throttle={throttle} backgroundPollCount={wifiDirect.backgroundPollCount} />
       </AnimatedPanel>
 
-      <AnimatedPanel index={10}>
+      <AnimatedPanel index={11}>
         <SectionCard
           eyebrow="Module 3"
           title="Store-and-forward mesh relay"
