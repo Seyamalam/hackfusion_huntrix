@@ -88,9 +88,9 @@ Answer: If slowdown is severe and critical cargo would miss SLA, the engine keep
 1. What features did you use to predict route failure, and why are they relevant?
 Answer: We use cumulative rainfall, rainfall rate change, elevation, and a soil saturation proxy. They are relevant because flood-driven impassability depends on water load, rainfall trend, terrain, and how saturated the ground already is.
 2. Which ML model did you choose and how did you evaluate its performance?
-Answer: We chose logistic regression because it is simple, transparent, and easy to run on-device. We trained on an `80/20` split and currently report `1.0` precision, `0.8333` recall, and `0.9091` F1 on our synthetic dataset.
+Answer: We chose logistic regression because it is simple, transparent, and easy to run on-device. We trained on an `80/20` split and currently report `1.0` precision, `0.8333` recall, and `0.9091` F1 on our synthetic dataset; the same metrics and model-card summary are also shown inside the mobile app.
 3. How are predictions integrated into routing decisions in real time?
-Answer: The predictive engine scores edges, and edges above the `0.7` threshold get penalized in the routing graph. The API, dashboard, and mobile app then use that penalized graph to recommend proactive reroutes before failure.
+Answer: The predictive engine scores edges, and edges above the `0.7` threshold get penalized in the routing graph. The API, dashboard, and mobile app then use that penalized graph to recommend proactive reroutes before failure, and the mobile app also demonstrates the model running locally.
 
 ---
 
