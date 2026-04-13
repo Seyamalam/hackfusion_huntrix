@@ -26,6 +26,7 @@ message ProofOfDeliveryChallenge {
   string nonce = 5;
   uint64 timestamp_unix_ms = 6;
   bytes signature = 7;
+  string sender_role = 8;
 }
 
 message GeneratePodChallengeRequest {
@@ -54,6 +55,7 @@ message ProofOfDeliveryResponse {
   uint64 recipient_timestamp_unix_ms = 5;
   bytes recipient_signature = 6;
   string receipt_id = 7;
+  string recipient_role = 8;
 }
 
 message DeliveryReceiptChainEntry {
@@ -73,6 +75,27 @@ message DeliveryReceiptChainEntry {
   bytes prev_receipt_hash = 14;
   bytes receipt_hash = 15;
   uint64 verified_at_unix_ms = 16;
+  string sender_role = 17;
+  string recipient_role = 18;
+}
+
+message HandoffOwnershipRecord {
+  string handoff_id = 1;
+  string scenario_id = 2;
+  string delivery_id = 3;
+  string cargo_id = 4;
+  string rendezvous_node_id = 5;
+  string rendezvous_label = 6;
+  string from_owner = 7;
+  string to_owner = 8;
+  string from_role = 9;
+  string to_role = 10;
+  string pod_receipt_id = 11;
+  bytes pod_receipt_hash = 12;
+  repeated VectorClockEntry vector_clock = 13;
+  string last_writer = 14;
+  uint64 updated_at_unix_ms = 15;
+  string status = 16;
 }
 
 message ConfirmPodRequest {

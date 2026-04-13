@@ -60,23 +60,20 @@ Confirm in the API response:
   - drone countersign
   - ownership transfer
 
-Confirm in the dashboard:
-- the handoff panel shows the event chain
-- the ownership transition is visible
+Confirm in the mobile app:
+- `Command` shows a live handoff workflow
+- `Boat Arrived`, `Generate Challenge`, `Drone Countersign`, and `Finalize Transfer` all run
+- finalized handoffs write an ownership record backed by the PoD receipt
+- the resulting ownership record can later travel in the mobile sync bundle
 
 ## M8.4 Mesh Throttling
 
-Confirm in the API response:
-- `battery_pct < 30`
-- `accelerometer_state = stationary`
-- adjusted interval is larger than baseline
-- adjusted broadcast count is lower than baseline
-- `battery_savings_pct > 0`
-
 Confirm in the mobile app:
 - `Network` shows the battery-aware mesh throttling panel
-- the same savings numbers are visible
+- the panel uses live battery, live accelerometer state, and live BLE peer proximity
+- adjusted interval is larger than baseline when throttle rules apply
 - the rule list states which reductions were applied
+- background Wi-Fi Direct polling follows the adjusted interval
 
 ## Demo Script
 
@@ -84,5 +81,5 @@ Recommended short flow:
 
 1. Show the drone-required zone on the dashboard map.
 2. Open the rendezvous panel and compare the 3 scenarios.
-3. Show the handoff timeline and ownership transfer.
-4. Open the mobile `Network` tab and show the mesh throttling savings.
+3. Run the live handoff buttons and show the ownership record after finalization.
+4. Open the mobile `Network` tab and show the live mesh throttling interval and savings.

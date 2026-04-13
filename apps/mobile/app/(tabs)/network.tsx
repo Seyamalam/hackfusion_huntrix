@@ -17,6 +17,7 @@ import {
 } from '@/src/features/dashboard/dashboard-api';
 import { useBleScanner } from '@/src/features/ble/use-ble-scanner';
 import { MeshThrottlePanel } from '@/src/features/fleet/mesh-throttle-panel';
+import { useMeshThrottle } from '@/src/features/fleet/use-mesh-throttle';
 import { useMeshDemo } from '@/src/features/mesh/use-mesh-demo';
 import { useWifiDirect } from '@/src/features/wifi-direct/use-wifi-direct';
 import { palette } from '@/src/theme/palette';
@@ -26,8 +27,12 @@ export default function NetworkScreen() {
   const [fleet, setFleet] = useState<FleetOrchestrationStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ble = useBleScanner();
+  const throttle = useMeshThrottle(ble.peers);
   const mesh = useMeshDemo();
-  const wifiDirect = useWifiDirect();
+  const wifiDirect = useWifiDirect({
+    backgroundPollEnabled: throttle.auto_poll_enabled,
+    backgroundPollIntervalSeconds: throttle.adjusted_interval_seconds,
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -237,7 +242,16 @@ export default function NetworkScreen() {
             />
             <InfoRow label="Last handshake" value={wifiDirect.lastHandshakeReplica ?? 'none'} />
             <InfoRow label="Receipt ledger" value={`${wifiDirect.deliveryReceipts.length} receipt(s)`} />
+            <InfoRow label="Handoff ledger" value={`${wifiDirect.handoffRecords.length} record(s)`} />
             <InfoRow label="RPC transport" value="SyncService protobuf frames over native socket messaging" />
+            <InfoRow
+              label="Background polling"
+              value={
+                wifiDirect.backgroundPollingEnabled
+                  ? `every ${wifiDirect.backgroundPollingIntervalSeconds}s`
+                  : 'disabled'
+              }
+            />
             <InfoRow
               label="Known peer clock"
               value={
@@ -277,6 +291,10 @@ export default function NetworkScreen() {
                 value={String(wifiDirect.sessionSummary.pending_envelope_count ?? 0)}
               />
               <InfoRow label="Payload bytes" value={String(wifiDirect.sessionSummary.bytes_estimate)} />
+              <InfoRow
+                label="Handoffs synced"
+                value={String(wifiDirect.sessionSummary.handoff_count ?? 0)}
+              />
             </View>
           </SectionCard>
         </AnimatedPanel>
@@ -318,7 +336,7 @@ export default function NetworkScreen() {
       ) : null}
 
       <AnimatedPanel index={8}>
-        <MeshThrottlePanel fleet={liveFleet} />
+        <MeshThrottlePanel throttle={throttle} backgroundPollCount={wifiDirect.backgroundPollCount} />
       </AnimatedPanel>
 
       <AnimatedPanel index={9}>

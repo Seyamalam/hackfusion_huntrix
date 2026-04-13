@@ -5,6 +5,7 @@ import {
   ProofOfDeliveryChallengeSchema,
   ProofOfDeliveryResponseSchema,
 } from '@/src/gen/delivery_pb';
+import type { AuthRole } from '@/src/features/auth/auth-types';
 import { canPerform } from '@/src/features/auth/auth-rbac';
 import { readRole } from '@/src/features/auth/auth-storage';
 import { ensureAuthState } from '@/src/features/auth/auth-service';
@@ -58,6 +59,7 @@ export async function createChallengeQr(deliveryId: string, payloadSummary: stri
         nonce: payload.nonce,
         timestampUnixMs: BigInt(Date.parse(payload.timestamp)),
         signature: hexToBytes(payload.signature),
+        senderRole: payload.sender_role,
       })))}`,
     },
   };
@@ -140,6 +142,7 @@ export async function countersignChallenge(rawValue: string): Promise<PodOutcome
         recipientTimestampUnixMs: BigInt(Date.parse(response.recipient_timestamp)),
         recipientSignature: hexToBytes(response.recipient_signature),
         receiptId: response.receipt_id,
+        recipientRole: response.recipient_role,
       })))}`,
     },
   };
@@ -243,7 +246,7 @@ export function parsePodPayload(rawValue: string): PodOutcome<PodPayload> {
           payload_hash: bytesToHex(message.payloadHash),
           sender_device_id: message.senderNodeId,
           sender_pubkey: bytesToHex(message.senderPublicKey),
-          sender_role: 'field_volunteer',
+          sender_role: (message.senderRole || 'field_volunteer') as AuthRole,
           signature: bytesToHex(message.signature),
           timestamp: new Date(Number(message.timestampUnixMs)).toISOString(),
         },
@@ -265,12 +268,12 @@ export function parsePodPayload(rawValue: string): PodOutcome<PodPayload> {
           recipient_device_id: message.recipientNodeId,
           recipient_nonce: message.recipientNonce,
           recipient_pubkey: bytesToHex(message.recipientPublicKey),
-          recipient_role: 'camp_commander',
+          recipient_role: (message.recipientRole || 'camp_commander') as AuthRole,
           recipient_signature: bytesToHex(message.recipientSignature),
           recipient_timestamp: new Date(Number(message.recipientTimestampUnixMs)).toISOString(),
           sender_device_id: message.challenge?.senderNodeId ?? '',
           sender_pubkey: bytesToHex(message.challenge?.senderPublicKey ?? new Uint8Array()),
-          sender_role: 'field_volunteer',
+          sender_role: ((message.challenge?.senderRole as AuthRole | undefined) || 'field_volunteer'),
           sender_signature: bytesToHex(message.challenge?.signature ?? new Uint8Array()),
         },
       };

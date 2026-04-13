@@ -138,6 +138,7 @@ type ProofOfDeliveryChallenge struct {
 	Nonce           string                 `protobuf:"bytes,5,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	TimestampUnixMs uint64                 `protobuf:"varint,6,opt,name=timestamp_unix_ms,json=timestampUnixMs,proto3" json:"timestamp_unix_ms,omitempty"`
 	Signature       []byte                 `protobuf:"bytes,7,opt,name=signature,proto3" json:"signature,omitempty"`
+	SenderRole      string                 `protobuf:"bytes,8,opt,name=sender_role,json=senderRole,proto3" json:"sender_role,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -219,6 +220,13 @@ func (x *ProofOfDeliveryChallenge) GetSignature() []byte {
 		return x.Signature
 	}
 	return nil
+}
+
+func (x *ProofOfDeliveryChallenge) GetSenderRole() string {
+	if x != nil {
+		return x.SenderRole
+	}
+	return ""
 }
 
 type GeneratePodChallengeRequest struct {
@@ -398,6 +406,7 @@ type ProofOfDeliveryResponse struct {
 	RecipientTimestampUnixMs uint64                    `protobuf:"varint,5,opt,name=recipient_timestamp_unix_ms,json=recipientTimestampUnixMs,proto3" json:"recipient_timestamp_unix_ms,omitempty"`
 	RecipientSignature       []byte                    `protobuf:"bytes,6,opt,name=recipient_signature,json=recipientSignature,proto3" json:"recipient_signature,omitempty"`
 	ReceiptId                string                    `protobuf:"bytes,7,opt,name=receipt_id,json=receiptId,proto3" json:"receipt_id,omitempty"`
+	RecipientRole            string                    `protobuf:"bytes,8,opt,name=recipient_role,json=recipientRole,proto3" json:"recipient_role,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -481,6 +490,13 @@ func (x *ProofOfDeliveryResponse) GetReceiptId() string {
 	return ""
 }
 
+func (x *ProofOfDeliveryResponse) GetRecipientRole() string {
+	if x != nil {
+		return x.RecipientRole
+	}
+	return ""
+}
+
 type DeliveryReceiptChainEntry struct {
 	state                    protoimpl.MessageState `protogen:"open.v1"`
 	ReceiptId                string                 `protobuf:"bytes,1,opt,name=receipt_id,json=receiptId,proto3" json:"receipt_id,omitempty"`
@@ -499,6 +515,8 @@ type DeliveryReceiptChainEntry struct {
 	PrevReceiptHash          []byte                 `protobuf:"bytes,14,opt,name=prev_receipt_hash,json=prevReceiptHash,proto3" json:"prev_receipt_hash,omitempty"`
 	ReceiptHash              []byte                 `protobuf:"bytes,15,opt,name=receipt_hash,json=receiptHash,proto3" json:"receipt_hash,omitempty"`
 	VerifiedAtUnixMs         uint64                 `protobuf:"varint,16,opt,name=verified_at_unix_ms,json=verifiedAtUnixMs,proto3" json:"verified_at_unix_ms,omitempty"`
+	SenderRole               string                 `protobuf:"bytes,17,opt,name=sender_role,json=senderRole,proto3" json:"sender_role,omitempty"`
+	RecipientRole            string                 `protobuf:"bytes,18,opt,name=recipient_role,json=recipientRole,proto3" json:"recipient_role,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -645,6 +663,184 @@ func (x *DeliveryReceiptChainEntry) GetVerifiedAtUnixMs() uint64 {
 	return 0
 }
 
+func (x *DeliveryReceiptChainEntry) GetSenderRole() string {
+	if x != nil {
+		return x.SenderRole
+	}
+	return ""
+}
+
+func (x *DeliveryReceiptChainEntry) GetRecipientRole() string {
+	if x != nil {
+		return x.RecipientRole
+	}
+	return ""
+}
+
+type HandoffOwnershipRecord struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	HandoffId        string                 `protobuf:"bytes,1,opt,name=handoff_id,json=handoffId,proto3" json:"handoff_id,omitempty"`
+	ScenarioId       string                 `protobuf:"bytes,2,opt,name=scenario_id,json=scenarioId,proto3" json:"scenario_id,omitempty"`
+	DeliveryId       string                 `protobuf:"bytes,3,opt,name=delivery_id,json=deliveryId,proto3" json:"delivery_id,omitempty"`
+	CargoId          string                 `protobuf:"bytes,4,opt,name=cargo_id,json=cargoId,proto3" json:"cargo_id,omitempty"`
+	RendezvousNodeId string                 `protobuf:"bytes,5,opt,name=rendezvous_node_id,json=rendezvousNodeId,proto3" json:"rendezvous_node_id,omitempty"`
+	RendezvousLabel  string                 `protobuf:"bytes,6,opt,name=rendezvous_label,json=rendezvousLabel,proto3" json:"rendezvous_label,omitempty"`
+	FromOwner        string                 `protobuf:"bytes,7,opt,name=from_owner,json=fromOwner,proto3" json:"from_owner,omitempty"`
+	ToOwner          string                 `protobuf:"bytes,8,opt,name=to_owner,json=toOwner,proto3" json:"to_owner,omitempty"`
+	FromRole         string                 `protobuf:"bytes,9,opt,name=from_role,json=fromRole,proto3" json:"from_role,omitempty"`
+	ToRole           string                 `protobuf:"bytes,10,opt,name=to_role,json=toRole,proto3" json:"to_role,omitempty"`
+	PodReceiptId     string                 `protobuf:"bytes,11,opt,name=pod_receipt_id,json=podReceiptId,proto3" json:"pod_receipt_id,omitempty"`
+	PodReceiptHash   []byte                 `protobuf:"bytes,12,opt,name=pod_receipt_hash,json=podReceiptHash,proto3" json:"pod_receipt_hash,omitempty"`
+	VectorClock      []*VectorClockEntry    `protobuf:"bytes,13,rep,name=vector_clock,json=vectorClock,proto3" json:"vector_clock,omitempty"`
+	LastWriter       string                 `protobuf:"bytes,14,opt,name=last_writer,json=lastWriter,proto3" json:"last_writer,omitempty"`
+	UpdatedAtUnixMs  uint64                 `protobuf:"varint,15,opt,name=updated_at_unix_ms,json=updatedAtUnixMs,proto3" json:"updated_at_unix_ms,omitempty"`
+	Status           string                 `protobuf:"bytes,16,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *HandoffOwnershipRecord) Reset() {
+	*x = HandoffOwnershipRecord{}
+	mi := &file_delivery_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandoffOwnershipRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandoffOwnershipRecord) ProtoMessage() {}
+
+func (x *HandoffOwnershipRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_delivery_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandoffOwnershipRecord.ProtoReflect.Descriptor instead.
+func (*HandoffOwnershipRecord) Descriptor() ([]byte, []int) {
+	return file_delivery_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *HandoffOwnershipRecord) GetHandoffId() string {
+	if x != nil {
+		return x.HandoffId
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetScenarioId() string {
+	if x != nil {
+		return x.ScenarioId
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetDeliveryId() string {
+	if x != nil {
+		return x.DeliveryId
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetCargoId() string {
+	if x != nil {
+		return x.CargoId
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetRendezvousNodeId() string {
+	if x != nil {
+		return x.RendezvousNodeId
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetRendezvousLabel() string {
+	if x != nil {
+		return x.RendezvousLabel
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetFromOwner() string {
+	if x != nil {
+		return x.FromOwner
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetToOwner() string {
+	if x != nil {
+		return x.ToOwner
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetFromRole() string {
+	if x != nil {
+		return x.FromRole
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetToRole() string {
+	if x != nil {
+		return x.ToRole
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetPodReceiptId() string {
+	if x != nil {
+		return x.PodReceiptId
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetPodReceiptHash() []byte {
+	if x != nil {
+		return x.PodReceiptHash
+	}
+	return nil
+}
+
+func (x *HandoffOwnershipRecord) GetVectorClock() []*VectorClockEntry {
+	if x != nil {
+		return x.VectorClock
+	}
+	return nil
+}
+
+func (x *HandoffOwnershipRecord) GetLastWriter() string {
+	if x != nil {
+		return x.LastWriter
+	}
+	return ""
+}
+
+func (x *HandoffOwnershipRecord) GetUpdatedAtUnixMs() uint64 {
+	if x != nil {
+		return x.UpdatedAtUnixMs
+	}
+	return 0
+}
+
+func (x *HandoffOwnershipRecord) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 type ConfirmPodRequest struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	Challenge     *ProofOfDeliveryChallenge `protobuf:"bytes,1,opt,name=challenge,proto3" json:"challenge,omitempty"`
@@ -655,7 +851,7 @@ type ConfirmPodRequest struct {
 
 func (x *ConfirmPodRequest) Reset() {
 	*x = ConfirmPodRequest{}
-	mi := &file_delivery_proto_msgTypes[6]
+	mi := &file_delivery_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -667,7 +863,7 @@ func (x *ConfirmPodRequest) String() string {
 func (*ConfirmPodRequest) ProtoMessage() {}
 
 func (x *ConfirmPodRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_delivery_proto_msgTypes[6]
+	mi := &file_delivery_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -680,7 +876,7 @@ func (x *ConfirmPodRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmPodRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmPodRequest) Descriptor() ([]byte, []int) {
-	return file_delivery_proto_rawDescGZIP(), []int{6}
+	return file_delivery_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ConfirmPodRequest) GetChallenge() *ProofOfDeliveryChallenge {
@@ -708,7 +904,7 @@ type ConfirmPodResponse struct {
 
 func (x *ConfirmPodResponse) Reset() {
 	*x = ConfirmPodResponse{}
-	mi := &file_delivery_proto_msgTypes[7]
+	mi := &file_delivery_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -720,7 +916,7 @@ func (x *ConfirmPodResponse) String() string {
 func (*ConfirmPodResponse) ProtoMessage() {}
 
 func (x *ConfirmPodResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_delivery_proto_msgTypes[7]
+	mi := &file_delivery_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -733,7 +929,7 @@ func (x *ConfirmPodResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmPodResponse.ProtoReflect.Descriptor instead.
 func (*ConfirmPodResponse) Descriptor() ([]byte, []int) {
-	return file_delivery_proto_rawDescGZIP(), []int{7}
+	return file_delivery_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ConfirmPodResponse) GetAccepted() bool {
@@ -773,7 +969,7 @@ const file_delivery_proto_rawDesc = "" +
 	"\n" +
 	"cargo_tags\x18\a \x03(\tR\tcargoTags\x12\x1b\n" +
 	"\tweight_kg\x18\b \x01(\rR\bweightKg\x12#\n" +
-	"\x0edue_by_unix_ms\x18\t \x01(\x04R\vdueByUnixMs\"\x90\x02\n" +
+	"\x0edue_by_unix_ms\x18\t \x01(\x04R\vdueByUnixMs\"\xb1\x02\n" +
 	"\x18ProofOfDeliveryChallenge\x12\x1f\n" +
 	"\vdelivery_id\x18\x01 \x01(\tR\n" +
 	"deliveryId\x12$\n" +
@@ -782,7 +978,9 @@ const file_delivery_proto_rawDesc = "" +
 	"\fpayload_hash\x18\x04 \x01(\fR\vpayloadHash\x12\x14\n" +
 	"\x05nonce\x18\x05 \x01(\tR\x05nonce\x12*\n" +
 	"\x11timestamp_unix_ms\x18\x06 \x01(\x04R\x0ftimestampUnixMs\x12\x1c\n" +
-	"\tsignature\x18\a \x01(\fR\tsignature\"\xb3\x01\n" +
+	"\tsignature\x18\a \x01(\fR\tsignature\x12\x1f\n" +
+	"\vsender_role\x18\b \x01(\tR\n" +
+	"senderRole\"\xb3\x01\n" +
 	"\x1bGeneratePodChallengeRequest\x12\x1f\n" +
 	"\vdelivery_id\x18\x01 \x01(\tR\n" +
 	"deliveryId\x12$\n" +
@@ -801,7 +999,7 @@ const file_delivery_proto_rawDesc = "" +
 	"\x13received_at_unix_ms\x18\x05 \x01(\x04R\x10receivedAtUnixMs\x12%\n" +
 	"\x0echallenge_hash\x18\x06 \x01(\fR\rchallengeHash\x12-\n" +
 	"\x12receiver_signature\x18\a \x01(\fR\x11receiverSignature\x12)\n" +
-	"\x10sender_signature\x18\b \x01(\fR\x0fsenderSignature\"\xf8\x02\n" +
+	"\x10sender_signature\x18\b \x01(\fR\x0fsenderSignature\"\x9f\x03\n" +
 	"\x17ProofOfDeliveryResponse\x12G\n" +
 	"\tchallenge\x18\x01 \x01(\v2).digitaldelta.v1.ProofOfDeliveryChallengeR\tchallenge\x12*\n" +
 	"\x11recipient_node_id\x18\x02 \x01(\tR\x0frecipientNodeId\x120\n" +
@@ -810,7 +1008,8 @@ const file_delivery_proto_rawDesc = "" +
 	"\x1brecipient_timestamp_unix_ms\x18\x05 \x01(\x04R\x18recipientTimestampUnixMs\x12/\n" +
 	"\x13recipient_signature\x18\x06 \x01(\fR\x12recipientSignature\x12\x1d\n" +
 	"\n" +
-	"receipt_id\x18\a \x01(\tR\treceiptId\"\xd8\x05\n" +
+	"receipt_id\x18\a \x01(\tR\treceiptId\x12%\n" +
+	"\x0erecipient_role\x18\b \x01(\tR\rrecipientRole\"\xa0\x06\n" +
 	"\x19DeliveryReceiptChainEntry\x12\x1d\n" +
 	"\n" +
 	"receipt_id\x18\x01 \x01(\tR\treceiptId\x12\x1f\n" +
@@ -830,7 +1029,33 @@ const file_delivery_proto_rawDesc = "" +
 	"\x13recipient_signature\x18\r \x01(\fR\x12recipientSignature\x12*\n" +
 	"\x11prev_receipt_hash\x18\x0e \x01(\fR\x0fprevReceiptHash\x12!\n" +
 	"\freceipt_hash\x18\x0f \x01(\fR\vreceiptHash\x12-\n" +
-	"\x13verified_at_unix_ms\x18\x10 \x01(\x04R\x10verifiedAtUnixMs\"\x98\x01\n" +
+	"\x13verified_at_unix_ms\x18\x10 \x01(\x04R\x10verifiedAtUnixMs\x12\x1f\n" +
+	"\vsender_role\x18\x11 \x01(\tR\n" +
+	"senderRole\x12%\n" +
+	"\x0erecipient_role\x18\x12 \x01(\tR\rrecipientRole\"\xd9\x04\n" +
+	"\x16HandoffOwnershipRecord\x12\x1d\n" +
+	"\n" +
+	"handoff_id\x18\x01 \x01(\tR\thandoffId\x12\x1f\n" +
+	"\vscenario_id\x18\x02 \x01(\tR\n" +
+	"scenarioId\x12\x1f\n" +
+	"\vdelivery_id\x18\x03 \x01(\tR\n" +
+	"deliveryId\x12\x19\n" +
+	"\bcargo_id\x18\x04 \x01(\tR\acargoId\x12,\n" +
+	"\x12rendezvous_node_id\x18\x05 \x01(\tR\x10rendezvousNodeId\x12)\n" +
+	"\x10rendezvous_label\x18\x06 \x01(\tR\x0frendezvousLabel\x12\x1d\n" +
+	"\n" +
+	"from_owner\x18\a \x01(\tR\tfromOwner\x12\x19\n" +
+	"\bto_owner\x18\b \x01(\tR\atoOwner\x12\x1b\n" +
+	"\tfrom_role\x18\t \x01(\tR\bfromRole\x12\x17\n" +
+	"\ato_role\x18\n" +
+	" \x01(\tR\x06toRole\x12$\n" +
+	"\x0epod_receipt_id\x18\v \x01(\tR\fpodReceiptId\x12(\n" +
+	"\x10pod_receipt_hash\x18\f \x01(\fR\x0epodReceiptHash\x12D\n" +
+	"\fvector_clock\x18\r \x03(\v2!.digitaldelta.v1.VectorClockEntryR\vvectorClock\x12\x1f\n" +
+	"\vlast_writer\x18\x0e \x01(\tR\n" +
+	"lastWriter\x12+\n" +
+	"\x12updated_at_unix_ms\x18\x0f \x01(\x04R\x0fupdatedAtUnixMs\x12\x16\n" +
+	"\x06status\x18\x10 \x01(\tR\x06status\"\x98\x01\n" +
 	"\x11ConfirmPodRequest\x12G\n" +
 	"\tchallenge\x18\x01 \x01(\v2).digitaldelta.v1.ProofOfDeliveryChallengeR\tchallenge\x12:\n" +
 	"\areceipt\x18\x02 \x01(\v2 .digitaldelta.v1.DeliveryReceiptR\areceipt\"\x84\x01\n" +
@@ -855,7 +1080,7 @@ func file_delivery_proto_rawDescGZIP() []byte {
 	return file_delivery_proto_rawDescData
 }
 
-var file_delivery_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_delivery_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_delivery_proto_goTypes = []any{
 	(*Delivery)(nil),                    // 0: digitaldelta.v1.Delivery
 	(*ProofOfDeliveryChallenge)(nil),    // 1: digitaldelta.v1.ProofOfDeliveryChallenge
@@ -863,24 +1088,27 @@ var file_delivery_proto_goTypes = []any{
 	(*DeliveryReceipt)(nil),             // 3: digitaldelta.v1.DeliveryReceipt
 	(*ProofOfDeliveryResponse)(nil),     // 4: digitaldelta.v1.ProofOfDeliveryResponse
 	(*DeliveryReceiptChainEntry)(nil),   // 5: digitaldelta.v1.DeliveryReceiptChainEntry
-	(*ConfirmPodRequest)(nil),           // 6: digitaldelta.v1.ConfirmPodRequest
-	(*ConfirmPodResponse)(nil),          // 7: digitaldelta.v1.ConfirmPodResponse
-	(DeliveryPriority)(0),               // 8: digitaldelta.v1.DeliveryPriority
+	(*HandoffOwnershipRecord)(nil),      // 6: digitaldelta.v1.HandoffOwnershipRecord
+	(*ConfirmPodRequest)(nil),           // 7: digitaldelta.v1.ConfirmPodRequest
+	(*ConfirmPodResponse)(nil),          // 8: digitaldelta.v1.ConfirmPodResponse
+	(DeliveryPriority)(0),               // 9: digitaldelta.v1.DeliveryPriority
+	(*VectorClockEntry)(nil),            // 10: digitaldelta.v1.VectorClockEntry
 }
 var file_delivery_proto_depIdxs = []int32{
-	8, // 0: digitaldelta.v1.Delivery.priority:type_name -> digitaldelta.v1.DeliveryPriority
-	1, // 1: digitaldelta.v1.ProofOfDeliveryResponse.challenge:type_name -> digitaldelta.v1.ProofOfDeliveryChallenge
-	1, // 2: digitaldelta.v1.ConfirmPodRequest.challenge:type_name -> digitaldelta.v1.ProofOfDeliveryChallenge
-	3, // 3: digitaldelta.v1.ConfirmPodRequest.receipt:type_name -> digitaldelta.v1.DeliveryReceipt
-	2, // 4: digitaldelta.v1.DeliveryService.GeneratePodChallenge:input_type -> digitaldelta.v1.GeneratePodChallengeRequest
-	6, // 5: digitaldelta.v1.DeliveryService.ConfirmPod:input_type -> digitaldelta.v1.ConfirmPodRequest
-	1, // 6: digitaldelta.v1.DeliveryService.GeneratePodChallenge:output_type -> digitaldelta.v1.ProofOfDeliveryChallenge
-	7, // 7: digitaldelta.v1.DeliveryService.ConfirmPod:output_type -> digitaldelta.v1.ConfirmPodResponse
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	9,  // 0: digitaldelta.v1.Delivery.priority:type_name -> digitaldelta.v1.DeliveryPriority
+	1,  // 1: digitaldelta.v1.ProofOfDeliveryResponse.challenge:type_name -> digitaldelta.v1.ProofOfDeliveryChallenge
+	10, // 2: digitaldelta.v1.HandoffOwnershipRecord.vector_clock:type_name -> digitaldelta.v1.VectorClockEntry
+	1,  // 3: digitaldelta.v1.ConfirmPodRequest.challenge:type_name -> digitaldelta.v1.ProofOfDeliveryChallenge
+	3,  // 4: digitaldelta.v1.ConfirmPodRequest.receipt:type_name -> digitaldelta.v1.DeliveryReceipt
+	2,  // 5: digitaldelta.v1.DeliveryService.GeneratePodChallenge:input_type -> digitaldelta.v1.GeneratePodChallengeRequest
+	7,  // 6: digitaldelta.v1.DeliveryService.ConfirmPod:input_type -> digitaldelta.v1.ConfirmPodRequest
+	1,  // 7: digitaldelta.v1.DeliveryService.GeneratePodChallenge:output_type -> digitaldelta.v1.ProofOfDeliveryChallenge
+	8,  // 8: digitaldelta.v1.DeliveryService.ConfirmPod:output_type -> digitaldelta.v1.ConfirmPodResponse
+	7,  // [7:9] is the sub-list for method output_type
+	5,  // [5:7] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_delivery_proto_init() }
@@ -895,7 +1123,7 @@ func file_delivery_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_delivery_proto_rawDesc), len(file_delivery_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

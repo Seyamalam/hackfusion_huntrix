@@ -1,4 +1,6 @@
 import type { PodReceipt } from '@/src/features/pod/pod-types';
+import { mergeHandoffRecords } from '@/src/features/fleet/handoff-ledger';
+import type { HandoffOwnershipRecord } from '@/src/features/fleet/handoff-types';
 
 export type ClockRelation = 'after' | 'before' | 'concurrent' | 'equal';
 
@@ -33,6 +35,7 @@ export type SyncDeltaBundle = {
   base_clock: Record<string, number>;
   bundle_id: string;
   created_at: string;
+  handoff_records: HandoffOwnershipRecord[];
   kind: 'sync-delta';
   pod_receipts: PodReceipt[];
   records: InventoryItem[];
@@ -44,6 +47,7 @@ export type SyncSessionSummary = {
   accepted_operation_count?: number;
   bytes_estimate: number;
   conflict_count: number;
+  handoff_count?: number;
   merged_count: number;
   pending_envelope_count?: number;
   record_count: number;
@@ -81,11 +85,13 @@ export function buildDeltaBundle(
   targetReplica: string,
   records: InventoryItem[],
   podReceipts: PodReceipt[] = [],
+  handoffRecords: HandoffOwnershipRecord[] = [],
 ): SyncDeltaBundle {
   return {
     base_clock: records[0]?.vector_clock ? { ...records[0].vector_clock } : {},
     bundle_id: `bundle-${Date.now()}`,
     created_at: new Date().toISOString(),
+    handoff_records: handoffRecords,
     kind: 'sync-delta',
     pod_receipts: podReceipts,
     records,
@@ -127,16 +133,20 @@ export function applyDeltaBundle(
   localItem: InventoryItem,
   bundle: SyncDeltaBundle,
   localReceipts: PodReceipt[] = [],
+  localHandoffRecords: HandoffOwnershipRecord[] = [],
 ) {
   const remoteItem = bundle.records[0];
   const mergedReceipts = mergePodReceipts(localReceipts, bundle.pod_receipts ?? []);
+  const mergedHandoffRecords = mergeHandoffRecords(localHandoffRecords, bundle.handoff_records ?? []);
   if (!remoteItem) {
     return {
+      handoffRecords: mergedHandoffRecords,
       item: localItem,
       receipts: mergedReceipts,
       summary: {
         bytes_estimate: estimateBundleBytes(bundle),
         conflict_count: 0,
+        handoff_count: bundle.handoff_records?.length ?? 0,
         merged_count: 0,
         record_count: 0,
         receipt_count: bundle.pod_receipts?.length ?? 0,
@@ -147,11 +157,13 @@ export function applyDeltaBundle(
   const relation = compareVectorClock(localItem.vector_clock, remoteItem.vector_clock);
   if (relation === 'before') {
     return {
+      handoffRecords: mergedHandoffRecords,
       item: cloneItem({ ...remoteItem, conflicts: [] }),
       receipts: mergedReceipts,
       summary: {
         bytes_estimate: estimateBundleBytes(bundle),
         conflict_count: 0,
+        handoff_count: bundle.handoff_records?.length ?? 0,
         merged_count: 1,
         record_count: bundle.records.length,
         receipt_count: bundle.pod_receipts?.length ?? 0,
@@ -161,11 +173,13 @@ export function applyDeltaBundle(
 
   if (relation === 'equal' || relation === 'after') {
     return {
+      handoffRecords: mergedHandoffRecords,
       item: cloneItem({ ...localItem, conflicts: [] }),
       receipts: mergedReceipts,
       summary: {
         bytes_estimate: estimateBundleBytes(bundle),
         conflict_count: 0,
+        handoff_count: bundle.handoff_records?.length ?? 0,
         merged_count: 1,
         record_count: bundle.records.length,
         receipt_count: bundle.pod_receipts?.length ?? 0,
@@ -201,11 +215,13 @@ export function applyDeltaBundle(
   merged.conflicts = conflicts;
 
   return {
+    handoffRecords: mergedHandoffRecords,
     item: merged,
     receipts: mergedReceipts,
     summary: {
       bytes_estimate: estimateBundleBytes(bundle),
       conflict_count: conflicts.length > 0 ? 1 : 0,
+      handoff_count: bundle.handoff_records?.length ?? 0,
       merged_count: 1,
       record_count: bundle.records.length,
       receipt_count: bundle.pod_receipts?.length ?? 0,

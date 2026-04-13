@@ -18,13 +18,20 @@ import {
   type PullPendingResponse,
   type SyncOperation,
 } from '@/src/gen/sync_pb';
-import { DeliveryReceiptChainEntrySchema, type DeliveryReceiptChainEntry } from '@/src/gen/delivery_pb';
+import {
+  DeliveryReceiptChainEntrySchema,
+  HandoffOwnershipRecordSchema,
+  type DeliveryReceiptChainEntry,
+  type HandoffOwnershipRecord as ProtoHandoffOwnershipRecord,
+} from '@/src/gen/delivery_pb';
 import { bytesToHex, hexToBytes } from '@/src/features/auth/auth-utils';
+import type { HandoffOwnershipRecord } from '@/src/features/fleet/handoff-types';
 import type { PodReceipt } from '@/src/features/pod/pod-types';
 import type { InventoryItem, SyncDeltaBundle, SyncHandshake } from '@/src/features/sync-demo/sync-protocol';
 
 const ENTITY_TYPE_INVENTORY = 'inventory_record';
 const ENTITY_TYPE_POD_RECEIPT = 'delivery_receipt_chain_entry';
+const ENTITY_TYPE_HANDOFF_RECORD = 'handoff_ownership_record';
 const METHOD_EXCHANGE_BUNDLE = 'digitaldelta.v1.SyncService/ExchangeBundle';
 const METHOD_PULL_PENDING = 'digitaldelta.v1.SyncService/PullPending';
 const METHOD_MESH_HANDSHAKE = 'digitaldelta.v1.MeshHandshake';
@@ -77,6 +84,16 @@ export function encodeDeltaPacket(bundle: SyncDeltaBundle, correlationId: string
         receipt.sender_device_id,
         { [receipt.sender_device_id]: 1 },
         Date.parse(receipt.verified_at),
+      ),
+    ),
+    ...bundle.handoff_records.map((record) =>
+      createOperation(
+        `${bundle.bundle_id}-${record.handoff_id}`,
+        ENTITY_TYPE_HANDOFF_RECORD,
+        toBinary(HandoffOwnershipRecordSchema, handoffRecordToProto(record)),
+        record.last_writer,
+        record.vector_clock,
+        Date.parse(record.updated_at),
       ),
     ),
   ];
@@ -269,6 +286,8 @@ function podReceiptToProto(receipt: PodReceipt): DeliveryReceiptChainEntry {
     prevReceiptHash: hexToBytes(receipt.prev_receipt_hash === 'GENESIS' ? '' : receipt.prev_receipt_hash),
     receiptHash: hexToBytes(receipt.receipt_hash),
     verifiedAtUnixMs: BigInt(Date.parse(receipt.verified_at)),
+    senderRole: receipt.sender_role,
+    recipientRole: receipt.recipient_role,
   });
 }
 
@@ -285,14 +304,56 @@ function protoToPodReceipt(entry: DeliveryReceiptChainEntry): PodReceipt {
     recipient_device_id: entry.recipientNodeId,
     recipient_nonce: entry.recipientNonce,
     recipient_pubkey: bytesToHex(entry.recipientPublicKey),
-    recipient_role: 'camp_commander',
+    recipient_role: entry.recipientRole as PodReceipt['recipient_role'],
     recipient_signature: bytesToHex(entry.recipientSignature),
     recipient_timestamp: new Date(Number(entry.recipientTimestampUnixMs)).toISOString(),
     sender_device_id: entry.senderNodeId,
     sender_pubkey: bytesToHex(entry.senderPublicKey),
-    sender_role: 'field_volunteer',
+    sender_role: entry.senderRole as PodReceipt['sender_role'],
     sender_signature: bytesToHex(entry.senderSignature),
     verified_at: new Date(Number(entry.verifiedAtUnixMs)).toISOString(),
+  };
+}
+
+function handoffRecordToProto(record: HandoffOwnershipRecord): ProtoHandoffOwnershipRecord {
+  return create(HandoffOwnershipRecordSchema, {
+    handoffId: record.handoff_id,
+    scenarioId: record.scenario_id,
+    deliveryId: record.delivery_id,
+    cargoId: record.cargo_id,
+    rendezvousNodeId: record.rendezvous_node_id,
+    rendezvousLabel: record.rendezvous_label,
+    fromOwner: record.from_owner,
+    toOwner: record.to_owner,
+    fromRole: record.from_role,
+    toRole: record.to_role,
+    podReceiptId: record.pod_receipt_id,
+    podReceiptHash: hexToBytes(record.pod_receipt_hash),
+    vectorClock: vectorClockToEntries(record.vector_clock),
+    lastWriter: record.last_writer,
+    updatedAtUnixMs: BigInt(Date.parse(record.updated_at)),
+    status: record.status,
+  });
+}
+
+function protoToHandoffRecord(record: ProtoHandoffOwnershipRecord): HandoffOwnershipRecord {
+  return {
+    cargo_id: record.cargoId,
+    delivery_id: record.deliveryId,
+    from_owner: record.fromOwner,
+    from_role: record.fromRole as HandoffOwnershipRecord['from_role'],
+    handoff_id: record.handoffId,
+    last_writer: record.lastWriter,
+    pod_receipt_hash: bytesToHex(record.podReceiptHash),
+    pod_receipt_id: record.podReceiptId,
+    rendezvous_label: record.rendezvousLabel,
+    rendezvous_node_id: record.rendezvousNodeId,
+    scenario_id: record.scenarioId,
+    status: record.status as HandoffOwnershipRecord['status'],
+    to_owner: record.toOwner,
+    to_role: record.toRole as HandoffOwnershipRecord['to_role'],
+    updated_at: new Date(Number(record.updatedAtUnixMs)).toISOString(),
+    vector_clock: entriesToVectorClock(record.vectorClock),
   };
 }
 
@@ -309,6 +370,7 @@ function protoToHandshake(handshake: MeshHandshake): SyncHandshake {
 function protoToDeltaBundle(request: ExchangeBundleRequest): SyncDeltaBundle {
   const records: InventoryItem[] = [];
   const podReceipts: PodReceipt[] = [];
+  const handoffRecords: HandoffOwnershipRecord[] = [];
   const operations = request.bundle?.operations ?? [];
   for (const operation of operations) {
     if (operation.entityType === ENTITY_TYPE_INVENTORY) {
@@ -317,6 +379,12 @@ function protoToDeltaBundle(request: ExchangeBundleRequest): SyncDeltaBundle {
     }
     if (operation.entityType === ENTITY_TYPE_POD_RECEIPT) {
       podReceipts.push(protoToPodReceipt(fromBinary(DeliveryReceiptChainEntrySchema, operation.payload)));
+      continue;
+    }
+    if (operation.entityType === ENTITY_TYPE_HANDOFF_RECORD) {
+      handoffRecords.push(
+        protoToHandoffRecord(fromBinary(HandoffOwnershipRecordSchema, operation.payload)),
+      );
     }
   }
 
@@ -324,6 +392,7 @@ function protoToDeltaBundle(request: ExchangeBundleRequest): SyncDeltaBundle {
     base_clock: records[0]?.vector_clock ?? {},
     bundle_id: request.bundle?.bundleId ?? `bundle-${Date.now()}`,
     created_at: new Date().toISOString(),
+    handoff_records: handoffRecords,
     kind: 'sync-delta',
     pod_receipts: podReceipts,
     records,

@@ -31,6 +31,8 @@ import {
   encodePullPendingResponsePacket,
 } from '@/src/features/sync-demo/sync-protobuf-wire';
 import type { PodReceipt } from '@/src/features/pod/pod-types';
+import type { HandoffOwnershipRecord } from '@/src/features/fleet/handoff-types';
+import { readHandoffRecords, writeHandoffRecords } from '@/src/features/fleet/handoff-storage';
 import {
   readLocalInventory,
   readPeerClocks,
@@ -42,7 +44,15 @@ import { readPodReceipts, writePodReceipts } from '@/src/features/pod/pod-storag
 import { canPerform } from '@/src/features/auth/auth-rbac';
 import { readRole } from '@/src/features/auth/auth-storage';
 
+type UseWifiDirectOptions = {
+  backgroundPollEnabled?: boolean;
+  backgroundPollIntervalSeconds?: number;
+};
+
 type WifiDirectState = {
+  backgroundPollCount: number;
+  backgroundPollingEnabled: boolean;
+  backgroundPollingIntervalSeconds: number;
   connectionInfo: WifiP2pInfo | null;
   error: string | null;
   evidence: {
@@ -63,6 +73,7 @@ type WifiDirectState = {
   lastHandshakeReplica: string | null;
   lastPeerAddress: string | null;
   deliveryReceipts: PodReceipt[];
+  handoffRecords: HandoffOwnershipRecord[];
   localInventory: InventoryItem;
   messages: string[];
   peers: Device[];
@@ -79,6 +90,9 @@ type WifiDirectState = {
 };
 
 const INITIAL_STATE: WifiDirectState = {
+  backgroundPollCount: 0,
+  backgroundPollingEnabled: false,
+  backgroundPollingIntervalSeconds: 5,
   connectionInfo: null,
   error: null,
   evidence: {
@@ -99,6 +113,7 @@ const INITIAL_STATE: WifiDirectState = {
   lastHandshakeReplica: null,
   lastPeerAddress: null,
   deliveryReceipts: [],
+  handoffRecords: [],
   localInventory: createSeedInventoryItem(),
   messages: [],
   peers: [],
@@ -109,7 +124,7 @@ const INITIAL_STATE: WifiDirectState = {
     'Wi-Fi Direct currently carries protobuf SyncService RPC frames over native sockets; full HTTP/2 gRPC on-device still needs deeper native support.',
 };
 
-export function useWifiDirect() {
+export function useWifiDirect(options: UseWifiDirectOptions = {}) {
   const subscriptionsRef = useRef<EmitterSubscription[]>([]);
   const stopReceivingRef = useRef<(() => void) | null>(null);
   const moduleRef = useRef<WifiDirectModule | null>(null);
@@ -120,6 +135,14 @@ export function useWifiDirect() {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    setState((current) => ({
+      ...current,
+      backgroundPollingEnabled: options.backgroundPollEnabled ?? false,
+      backgroundPollingIntervalSeconds: options.backgroundPollIntervalSeconds ?? 5,
+    }));
+  }, [options.backgroundPollEnabled, options.backgroundPollIntervalSeconds]);
 
   useEffect(() => {
     if (process.env.EXPO_OS !== 'android') {
@@ -141,14 +164,21 @@ export function useWifiDirect() {
     }
 
     let active = true;
-    Promise.all([readReplicaId(), readLocalInventory(), readPeerClocks(), readPodReceipts()]).then(
-      ([replicaId, localInventory, peerClocks, deliveryReceipts]) => {
+    Promise.all([
+      readReplicaId(),
+      readLocalInventory(),
+      readPeerClocks(),
+      readPodReceipts(),
+      readHandoffRecords(),
+    ]).then(
+      ([replicaId, localInventory, peerClocks, deliveryReceipts, handoffRecords]) => {
         if (!active) {
           return;
         }
         setState((current) => ({
           ...current,
           deliveryReceipts,
+          handoffRecords,
           localInventory,
           peerClocks,
           replicaId,
@@ -170,6 +200,22 @@ export function useWifiDirect() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!options.backgroundPollEnabled || !state.lastPeerAddress || !state.isInitialized) {
+      return;
+    }
+
+    const intervalMs = Math.max(1000, Math.round((options.backgroundPollIntervalSeconds ?? 5) * 1000));
+    const handle = setInterval(() => {
+      if (!stateRef.current.connectionInfo?.groupFormed || !stateRef.current.lastPeerAddress) {
+        return;
+      }
+      void sendPullPendingInternal(stateRef.current.lastPeerAddress, 'background');
+    }, intervalMs);
+
+    return () => clearInterval(handle);
+  }, [options.backgroundPollEnabled, options.backgroundPollIntervalSeconds, state.isInitialized, state.lastPeerAddress]);
 
   async function initializeTransport() {
     if (!state.isReady) {
@@ -338,7 +384,13 @@ export function useWifiDirect() {
     const changedRecords = filterChangedRecords([state.localInventory], knownClock);
     const correlationId = createDeviceId();
     const payload = encodeDeltaPacket(
-      buildDeltaBundle(state.replicaId, targetReplica, changedRecords, state.deliveryReceipts),
+      buildDeltaBundle(
+        state.replicaId,
+        targetReplica,
+        changedRecords,
+        state.deliveryReceipts,
+        state.handoffRecords,
+      ),
       correlationId,
     );
 
@@ -369,6 +421,7 @@ export function useWifiDirect() {
           record_count: changedRecords.length,
           rejected_operation_count: 0,
           receipt_count: state.deliveryReceipts.length,
+          handoff_count: state.handoffRecords.length,
         },
       }));
     } catch (error) {
@@ -380,12 +433,18 @@ export function useWifiDirect() {
   }
 
   async function sendPullPending(deviceAddress: string) {
+    await sendPullPendingInternal(deviceAddress, 'manual');
+  }
+
+  async function sendPullPendingInternal(deviceAddress: string, source: 'background' | 'manual') {
     const role = (await readRole()) ?? 'field_volunteer';
     if (!canPerform(role, 'send_sync')) {
-      setState((current) => ({
-        ...current,
-        error: `Role ${role} cannot pull pending sync messages.`,
-      }));
+      if (source === 'manual') {
+        setState((current) => ({
+          ...current,
+          error: `Role ${role} cannot pull pending sync messages.`,
+        }));
+      }
       return;
     }
 
@@ -397,6 +456,8 @@ export function useWifiDirect() {
       await wifiDirect.sendMessageTo(payload, deviceAddress);
       setState((current) => ({
         ...current,
+        backgroundPollCount:
+          source === 'background' ? current.backgroundPollCount + 1 : current.backgroundPollCount,
         evidence: {
           ...current.evidence,
           lastCorrelationId: correlationId,
@@ -407,7 +468,7 @@ export function useWifiDirect() {
         error: null,
         lastPeerAddress: deviceAddress,
         messages: [
-          `to ${deviceAddress}: PullPending request sent (${correlationId.slice(0, 8)})`,
+          `to ${deviceAddress}: ${source === 'background' ? 'background ' : ''}PullPending request sent (${correlationId.slice(0, 8)})`,
           ...current.messages,
         ].slice(0, 8),
       }));
@@ -498,7 +559,12 @@ export function useWifiDirect() {
     if (decoded.kind === 'exchange_request') {
       const bundle: SyncDeltaBundle = decoded.bundle;
       const snapshot = stateRef.current;
-      const result = applyDeltaBundle(snapshot.localInventory, bundle, snapshot.deliveryReceipts);
+      const result = applyDeltaBundle(
+        snapshot.localInventory,
+        bundle,
+        snapshot.deliveryReceipts,
+        snapshot.handoffRecords,
+      );
       const exchangeResponse = buildExchangeBundleResponse(decoded.request, snapshot.replicaId);
       const nextPeerClocks = {
         ...snapshot.peerClocks,
@@ -511,12 +577,14 @@ export function useWifiDirect() {
 
       persistLocalInventory(result.item);
       void writePodReceipts(result.receipts);
+      void writeHandoffRecords(result.handoffRecords);
       void writePeerClocks(nextPeerClocks);
       await sendRpcResponse(fromAddress, encodeExchangeBundleResponsePacket(exchangeResponse, decoded.correlationId));
 
       setState((current) => ({
         ...current,
         deliveryReceipts: result.receipts,
+        handoffRecords: result.handoffRecords,
         evidence: {
           ...current.evidence,
           exchangeRequestSeen: true,
@@ -532,11 +600,11 @@ export function useWifiDirect() {
         ].slice(0, 8),
         peerClocks: nextPeerClocks,
         sessionSummary: {
-          ...result.summary,
-          accepted_operation_count: exchangeResponse.acceptedOperationIds.length,
-          pending_envelope_count: exchangeResponse.pendingEnvelopeIds.length,
-          rejected_operation_count: exchangeResponse.rejectedOperationIds.length,
-        },
+              ...result.summary,
+              accepted_operation_count: exchangeResponse.acceptedOperationIds.length,
+              pending_envelope_count: exchangeResponse.pendingEnvelopeIds.length,
+              rejected_operation_count: exchangeResponse.rejectedOperationIds.length,
+            },
       }));
       return;
     }
@@ -614,6 +682,7 @@ export function useWifiDirect() {
               record_count: 0,
               rejected_operation_count: 0,
               receipt_count: 0,
+              handoff_count: 0,
             },
       }));
       return;

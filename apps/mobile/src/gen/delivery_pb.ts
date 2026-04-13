@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { DeliveryPriority } from "./common_pb";
+import type { DeliveryPriority, VectorClockEntry } from "./common_pb";
 import { file_common } from "./common_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file delivery.proto.
  */
 export const file_delivery: GenFile = /*@__PURE__*/
-  fileDesc("Cg5kZWxpdmVyeS5wcm90bxIPZGlnaXRhbGRlbHRhLnYxIvoBCghEZWxpdmVyeRITCgtkZWxpdmVyeV9pZBgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIzCghwcmlvcml0eRgDIAEoDjIhLmRpZ2l0YWxkZWx0YS52MS5EZWxpdmVyeVByaW9yaXR5EhYKDm9yaWdpbl9ub2RlX2lkGAQgASgJEhsKE2Rlc3RpbmF0aW9uX25vZGVfaWQYBSABKAkSGwoTYXNzaWduZWRfdmVoaWNsZV9pZBgGIAEoCRISCgpjYXJnb190YWdzGAcgAygJEhEKCXdlaWdodF9rZxgIIAEoDRIWCg5kdWVfYnlfdW5peF9tcxgJIAEoBCK1AQoYUHJvb2ZPZkRlbGl2ZXJ5Q2hhbGxlbmdlEhMKC2RlbGl2ZXJ5X2lkGAEgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAIgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAMgASgMEhQKDHBheWxvYWRfaGFzaBgEIAEoDBINCgVub25jZRgFIAEoCRIZChF0aW1lc3RhbXBfdW5peF9tcxgGIAEoBBIRCglzaWduYXR1cmUYByABKAwiewobR2VuZXJhdGVQb2RDaGFsbGVuZ2VSZXF1ZXN0EhMKC2RlbGl2ZXJ5X2lkGAEgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAIgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAMgASgMEhQKDHBheWxvYWRfaGFzaBgEIAEoDCLPAQoPRGVsaXZlcnlSZWNlaXB0EhIKCnJlY2VpcHRfaWQYASABKAkSEwoLZGVsaXZlcnlfaWQYAiABKAkSFAoMZnJvbV9ub2RlX2lkGAMgASgJEhIKCnRvX25vZGVfaWQYBCABKAkSGwoTcmVjZWl2ZWRfYXRfdW5peF9tcxgFIAEoBBIWCg5jaGFsbGVuZ2VfaGFzaBgGIAEoDBIaChJyZWNlaXZlcl9zaWduYXR1cmUYByABKAwSGAoQc2VuZGVyX3NpZ25hdHVyZRgIIAEoDCL/AQoXUHJvb2ZPZkRlbGl2ZXJ5UmVzcG9uc2USPAoJY2hhbGxlbmdlGAEgASgLMikuZGlnaXRhbGRlbHRhLnYxLlByb29mT2ZEZWxpdmVyeUNoYWxsZW5nZRIZChFyZWNpcGllbnRfbm9kZV9pZBgCIAEoCRIcChRyZWNpcGllbnRfcHVibGljX2tleRgDIAEoDBIXCg9yZWNpcGllbnRfbm9uY2UYBCABKAkSIwobcmVjaXBpZW50X3RpbWVzdGFtcF91bml4X21zGAUgASgEEhsKE3JlY2lwaWVudF9zaWduYXR1cmUYBiABKAwSEgoKcmVjZWlwdF9pZBgHIAEoCSLHAwoZRGVsaXZlcnlSZWNlaXB0Q2hhaW5FbnRyeRISCgpyZWNlaXB0X2lkGAEgASgJEhMKC2RlbGl2ZXJ5X2lkGAIgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAMgASgJEhkKEXJlY2lwaWVudF9ub2RlX2lkGAQgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAUgASgMEhwKFHJlY2lwaWVudF9wdWJsaWNfa2V5GAYgASgMEhcKD2NoYWxsZW5nZV9ub25jZRgHIAEoCRIXCg9yZWNpcGllbnRfbm9uY2UYCCABKAkSIwobY2hhbGxlbmdlX3RpbWVzdGFtcF91bml4X21zGAkgASgEEiMKG3JlY2lwaWVudF90aW1lc3RhbXBfdW5peF9tcxgKIAEoBBIUCgxwYXlsb2FkX2hhc2gYCyABKAwSGAoQc2VuZGVyX3NpZ25hdHVyZRgMIAEoDBIbChNyZWNpcGllbnRfc2lnbmF0dXJlGA0gASgMEhkKEXByZXZfcmVjZWlwdF9oYXNoGA4gASgMEhQKDHJlY2VpcHRfaGFzaBgPIAEoDBIbChN2ZXJpZmllZF9hdF91bml4X21zGBAgASgEIoQBChFDb25maXJtUG9kUmVxdWVzdBI8CgljaGFsbGVuZ2UYASABKAsyKS5kaWdpdGFsZGVsdGEudjEuUHJvb2ZPZkRlbGl2ZXJ5Q2hhbGxlbmdlEjEKB3JlY2VpcHQYAiABKAsyIC5kaWdpdGFsZGVsdGEudjEuRGVsaXZlcnlSZWNlaXB0IlkKEkNvbmZpcm1Qb2RSZXNwb25zZRIQCghhY2NlcHRlZBgBIAEoCBIXCg9yZXBsYXlfZGV0ZWN0ZWQYAiABKAgSGAoQcmVqZWN0aW9uX3JlYXNvbhgDIAEoCTLZAQoPRGVsaXZlcnlTZXJ2aWNlEm8KFEdlbmVyYXRlUG9kQ2hhbGxlbmdlEiwuZGlnaXRhbGRlbHRhLnYxLkdlbmVyYXRlUG9kQ2hhbGxlbmdlUmVxdWVzdBopLmRpZ2l0YWxkZWx0YS52MS5Qcm9vZk9mRGVsaXZlcnlDaGFsbGVuZ2USVQoKQ29uZmlybVBvZBIiLmRpZ2l0YWxkZWx0YS52MS5Db25maXJtUG9kUmVxdWVzdBojLmRpZ2l0YWxkZWx0YS52MS5Db25maXJtUG9kUmVzcG9uc2VCVFpSZ2l0aHViLmNvbS9TZXlhbWFsYW0vaGFja2Z1c2lvbl9odW50cml4L3Byb3RvL2dlbi9nby9kaWdpdGFsZGVsdGF2MTtkaWdpdGFsZGVsdGF2MWIGcHJvdG8z", [file_common]);
+  fileDesc("Cg5kZWxpdmVyeS5wcm90bxIPZGlnaXRhbGRlbHRhLnYxIvoBCghEZWxpdmVyeRITCgtkZWxpdmVyeV9pZBgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIzCghwcmlvcml0eRgDIAEoDjIhLmRpZ2l0YWxkZWx0YS52MS5EZWxpdmVyeVByaW9yaXR5EhYKDm9yaWdpbl9ub2RlX2lkGAQgASgJEhsKE2Rlc3RpbmF0aW9uX25vZGVfaWQYBSABKAkSGwoTYXNzaWduZWRfdmVoaWNsZV9pZBgGIAEoCRISCgpjYXJnb190YWdzGAcgAygJEhEKCXdlaWdodF9rZxgIIAEoDRIWCg5kdWVfYnlfdW5peF9tcxgJIAEoBCLKAQoYUHJvb2ZPZkRlbGl2ZXJ5Q2hhbGxlbmdlEhMKC2RlbGl2ZXJ5X2lkGAEgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAIgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAMgASgMEhQKDHBheWxvYWRfaGFzaBgEIAEoDBINCgVub25jZRgFIAEoCRIZChF0aW1lc3RhbXBfdW5peF9tcxgGIAEoBBIRCglzaWduYXR1cmUYByABKAwSEwoLc2VuZGVyX3JvbGUYCCABKAkiewobR2VuZXJhdGVQb2RDaGFsbGVuZ2VSZXF1ZXN0EhMKC2RlbGl2ZXJ5X2lkGAEgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAIgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAMgASgMEhQKDHBheWxvYWRfaGFzaBgEIAEoDCLPAQoPRGVsaXZlcnlSZWNlaXB0EhIKCnJlY2VpcHRfaWQYASABKAkSEwoLZGVsaXZlcnlfaWQYAiABKAkSFAoMZnJvbV9ub2RlX2lkGAMgASgJEhIKCnRvX25vZGVfaWQYBCABKAkSGwoTcmVjZWl2ZWRfYXRfdW5peF9tcxgFIAEoBBIWCg5jaGFsbGVuZ2VfaGFzaBgGIAEoDBIaChJyZWNlaXZlcl9zaWduYXR1cmUYByABKAwSGAoQc2VuZGVyX3NpZ25hdHVyZRgIIAEoDCKXAgoXUHJvb2ZPZkRlbGl2ZXJ5UmVzcG9uc2USPAoJY2hhbGxlbmdlGAEgASgLMikuZGlnaXRhbGRlbHRhLnYxLlByb29mT2ZEZWxpdmVyeUNoYWxsZW5nZRIZChFyZWNpcGllbnRfbm9kZV9pZBgCIAEoCRIcChRyZWNpcGllbnRfcHVibGljX2tleRgDIAEoDBIXCg9yZWNpcGllbnRfbm9uY2UYBCABKAkSIwobcmVjaXBpZW50X3RpbWVzdGFtcF91bml4X21zGAUgASgEEhsKE3JlY2lwaWVudF9zaWduYXR1cmUYBiABKAwSEgoKcmVjZWlwdF9pZBgHIAEoCRIWCg5yZWNpcGllbnRfcm9sZRgIIAEoCSL0AwoZRGVsaXZlcnlSZWNlaXB0Q2hhaW5FbnRyeRISCgpyZWNlaXB0X2lkGAEgASgJEhMKC2RlbGl2ZXJ5X2lkGAIgASgJEhYKDnNlbmRlcl9ub2RlX2lkGAMgASgJEhkKEXJlY2lwaWVudF9ub2RlX2lkGAQgASgJEhkKEXNlbmRlcl9wdWJsaWNfa2V5GAUgASgMEhwKFHJlY2lwaWVudF9wdWJsaWNfa2V5GAYgASgMEhcKD2NoYWxsZW5nZV9ub25jZRgHIAEoCRIXCg9yZWNpcGllbnRfbm9uY2UYCCABKAkSIwobY2hhbGxlbmdlX3RpbWVzdGFtcF91bml4X21zGAkgASgEEiMKG3JlY2lwaWVudF90aW1lc3RhbXBfdW5peF9tcxgKIAEoBBIUCgxwYXlsb2FkX2hhc2gYCyABKAwSGAoQc2VuZGVyX3NpZ25hdHVyZRgMIAEoDBIbChNyZWNpcGllbnRfc2lnbmF0dXJlGA0gASgMEhkKEXByZXZfcmVjZWlwdF9oYXNoGA4gASgMEhQKDHJlY2VpcHRfaGFzaBgPIAEoDBIbChN2ZXJpZmllZF9hdF91bml4X21zGBAgASgEEhMKC3NlbmRlcl9yb2xlGBEgASgJEhYKDnJlY2lwaWVudF9yb2xlGBIgASgJIpQDChZIYW5kb2ZmT3duZXJzaGlwUmVjb3JkEhIKCmhhbmRvZmZfaWQYASABKAkSEwoLc2NlbmFyaW9faWQYAiABKAkSEwoLZGVsaXZlcnlfaWQYAyABKAkSEAoIY2FyZ29faWQYBCABKAkSGgoScmVuZGV6dm91c19ub2RlX2lkGAUgASgJEhgKEHJlbmRlenZvdXNfbGFiZWwYBiABKAkSEgoKZnJvbV9vd25lchgHIAEoCRIQCgh0b19vd25lchgIIAEoCRIRCglmcm9tX3JvbGUYCSABKAkSDwoHdG9fcm9sZRgKIAEoCRIWCg5wb2RfcmVjZWlwdF9pZBgLIAEoCRIYChBwb2RfcmVjZWlwdF9oYXNoGAwgASgMEjcKDHZlY3Rvcl9jbG9jaxgNIAMoCzIhLmRpZ2l0YWxkZWx0YS52MS5WZWN0b3JDbG9ja0VudHJ5EhMKC2xhc3Rfd3JpdGVyGA4gASgJEhoKEnVwZGF0ZWRfYXRfdW5peF9tcxgPIAEoBBIOCgZzdGF0dXMYECABKAkihAEKEUNvbmZpcm1Qb2RSZXF1ZXN0EjwKCWNoYWxsZW5nZRgBIAEoCzIpLmRpZ2l0YWxkZWx0YS52MS5Qcm9vZk9mRGVsaXZlcnlDaGFsbGVuZ2USMQoHcmVjZWlwdBgCIAEoCzIgLmRpZ2l0YWxkZWx0YS52MS5EZWxpdmVyeVJlY2VpcHQiWQoSQ29uZmlybVBvZFJlc3BvbnNlEhAKCGFjY2VwdGVkGAEgASgIEhcKD3JlcGxheV9kZXRlY3RlZBgCIAEoCBIYChByZWplY3Rpb25fcmVhc29uGAMgASgJMtkBCg9EZWxpdmVyeVNlcnZpY2USbwoUR2VuZXJhdGVQb2RDaGFsbGVuZ2USLC5kaWdpdGFsZGVsdGEudjEuR2VuZXJhdGVQb2RDaGFsbGVuZ2VSZXF1ZXN0GikuZGlnaXRhbGRlbHRhLnYxLlByb29mT2ZEZWxpdmVyeUNoYWxsZW5nZRJVCgpDb25maXJtUG9kEiIuZGlnaXRhbGRlbHRhLnYxLkNvbmZpcm1Qb2RSZXF1ZXN0GiMuZGlnaXRhbGRlbHRhLnYxLkNvbmZpcm1Qb2RSZXNwb25zZUJUWlJnaXRodWIuY29tL1NleWFtYWxhbS9oYWNrZnVzaW9uX2h1bnRyaXgvcHJvdG8vZ2VuL2dvL2RpZ2l0YWxkZWx0YXYxO2RpZ2l0YWxkZWx0YXYxYgZwcm90bzM", [file_common]);
 
 /**
  * @generated from message digitaldelta.v1.Delivery
@@ -109,6 +109,11 @@ export type ProofOfDeliveryChallenge = Message<"digitaldelta.v1.ProofOfDeliveryC
    * @generated from field: bytes signature = 7;
    */
   signature: Uint8Array;
+
+  /**
+   * @generated from field: string sender_role = 8;
+   */
+  senderRole: string;
 };
 
 /**
@@ -240,6 +245,11 @@ export type ProofOfDeliveryResponse = Message<"digitaldelta.v1.ProofOfDeliveryRe
    * @generated from field: string receipt_id = 7;
    */
   receiptId: string;
+
+  /**
+   * @generated from field: string recipient_role = 8;
+   */
+  recipientRole: string;
 };
 
 /**
@@ -332,6 +342,16 @@ export type DeliveryReceiptChainEntry = Message<"digitaldelta.v1.DeliveryReceipt
    * @generated from field: uint64 verified_at_unix_ms = 16;
    */
   verifiedAtUnixMs: bigint;
+
+  /**
+   * @generated from field: string sender_role = 17;
+   */
+  senderRole: string;
+
+  /**
+   * @generated from field: string recipient_role = 18;
+   */
+  recipientRole: string;
 };
 
 /**
@@ -340,6 +360,98 @@ export type DeliveryReceiptChainEntry = Message<"digitaldelta.v1.DeliveryReceipt
  */
 export const DeliveryReceiptChainEntrySchema: GenMessage<DeliveryReceiptChainEntry> = /*@__PURE__*/
   messageDesc(file_delivery, 5);
+
+/**
+ * @generated from message digitaldelta.v1.HandoffOwnershipRecord
+ */
+export type HandoffOwnershipRecord = Message<"digitaldelta.v1.HandoffOwnershipRecord"> & {
+  /**
+   * @generated from field: string handoff_id = 1;
+   */
+  handoffId: string;
+
+  /**
+   * @generated from field: string scenario_id = 2;
+   */
+  scenarioId: string;
+
+  /**
+   * @generated from field: string delivery_id = 3;
+   */
+  deliveryId: string;
+
+  /**
+   * @generated from field: string cargo_id = 4;
+   */
+  cargoId: string;
+
+  /**
+   * @generated from field: string rendezvous_node_id = 5;
+   */
+  rendezvousNodeId: string;
+
+  /**
+   * @generated from field: string rendezvous_label = 6;
+   */
+  rendezvousLabel: string;
+
+  /**
+   * @generated from field: string from_owner = 7;
+   */
+  fromOwner: string;
+
+  /**
+   * @generated from field: string to_owner = 8;
+   */
+  toOwner: string;
+
+  /**
+   * @generated from field: string from_role = 9;
+   */
+  fromRole: string;
+
+  /**
+   * @generated from field: string to_role = 10;
+   */
+  toRole: string;
+
+  /**
+   * @generated from field: string pod_receipt_id = 11;
+   */
+  podReceiptId: string;
+
+  /**
+   * @generated from field: bytes pod_receipt_hash = 12;
+   */
+  podReceiptHash: Uint8Array;
+
+  /**
+   * @generated from field: repeated digitaldelta.v1.VectorClockEntry vector_clock = 13;
+   */
+  vectorClock: VectorClockEntry[];
+
+  /**
+   * @generated from field: string last_writer = 14;
+   */
+  lastWriter: string;
+
+  /**
+   * @generated from field: uint64 updated_at_unix_ms = 15;
+   */
+  updatedAtUnixMs: bigint;
+
+  /**
+   * @generated from field: string status = 16;
+   */
+  status: string;
+};
+
+/**
+ * Describes the message digitaldelta.v1.HandoffOwnershipRecord.
+ * Use `create(HandoffOwnershipRecordSchema)` to create a new message.
+ */
+export const HandoffOwnershipRecordSchema: GenMessage<HandoffOwnershipRecord> = /*@__PURE__*/
+  messageDesc(file_delivery, 6);
 
 /**
  * @generated from message digitaldelta.v1.ConfirmPodRequest
@@ -361,7 +473,7 @@ export type ConfirmPodRequest = Message<"digitaldelta.v1.ConfirmPodRequest"> & {
  * Use `create(ConfirmPodRequestSchema)` to create a new message.
  */
 export const ConfirmPodRequestSchema: GenMessage<ConfirmPodRequest> = /*@__PURE__*/
-  messageDesc(file_delivery, 6);
+  messageDesc(file_delivery, 7);
 
 /**
  * @generated from message digitaldelta.v1.ConfirmPodResponse
@@ -388,7 +500,7 @@ export type ConfirmPodResponse = Message<"digitaldelta.v1.ConfirmPodResponse"> &
  * Use `create(ConfirmPodResponseSchema)` to create a new message.
  */
 export const ConfirmPodResponseSchema: GenMessage<ConfirmPodResponse> = /*@__PURE__*/
-  messageDesc(file_delivery, 7);
+  messageDesc(file_delivery, 8);
 
 /**
  * @generated from service digitaldelta.v1.DeliveryService

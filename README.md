@@ -66,7 +66,7 @@ Android profiling capture:
 - [x] Add offline proof-of-delivery QR signing, countersigning, replay protection, and receipt-chain sync
 - [x] Add autonomous triage prediction and preemption across the route dashboard and app
 - [x] Add predictive route decay with trained ML artifacts, penalized rerouting, and risk overlays
-- [x] Add hybrid fleet orchestration with drone-required zones, rendezvous logic, handoff simulation, and mesh throttling
+- [x] Add hybrid fleet orchestration with drone-required zones, rendezvous logic, live mobile handoff execution, and telemetry-driven mesh throttling
 - [ ] Replace simulated sync with actual Bluetooth or Wi-Fi Direct delta sync
 - [ ] Replace the remaining mobile mock data with scenario-backed live data
 - [x] Add `DEMO.md` and model-card source docs
